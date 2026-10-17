@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Дежурство-Контроль PRO • Батарея</title>
+  <title>Дежурство-Контроль PRO • Взвод</title>
   <!-- Telegram Mini App SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Tailwind CSS -->
@@ -36,6 +36,19 @@
         tg?.HapticFeedback?.impactOccurred(type);
       } catch (e) {}
     };
+
+    // =========================================================
+    // СПИСОК TELEGRAM ID АДМИНИСТРАТОРОВ (ТОЛЬКО ОНИ МОГУТ МЕНЯТЬ ГРАФИК)
+    // =========================================================
+    const ADMIN_TELEGRAM_IDS = [
+      7032931171,
+      8908389240,
+      8654413624,
+      1017627172
+    ];
+
+    const currentTelegramId = Number(tg?.initDataUnsafe?.user?.id || 0);
+    const isUserAdmin = ADMIN_TELEGRAM_IDS.includes(currentTelegramId);
 
     // 1. СПИСОК ГРУППЫ ПО ОТДЕЛЕНИЯМ (23 ЧЕЛОВЕКА)
     const INITIAL_MEMBERS = [
@@ -109,42 +122,38 @@
     };
 
     function BatteryDutyApp() {
-      const [tab, setTab] = useState('SCHEDULE'); // SCHEDULE | DEBTS | MEMBERS | TASKS | CLOUD
+      const [tab, setTab] = useState('SCHEDULE'); // SCHEDULE | STATS | DEBTS | TASKS | CLOUD
       const [toast, setToast] = useState(null);
-      const [squadFilter, setSquadFilter] = useState(0);
 
       // Основные состояния
       const [members, setMembers] = useState(() => {
-        const s = localStorage.getItem('bat_v4_members');
+        const s = localStorage.getItem('bat_v5_members');
         return s ? JSON.parse(s) : INITIAL_MEMBERS;
       });
 
       const [taskTemplates, setTaskTemplates] = useState(() => {
-        const s = localStorage.getItem('bat_v4_templates');
+        const s = localStorage.getItem('bat_v5_templates');
         return s ? JSON.parse(s) : INITIAL_TEMPLATES;
       });
 
-      // Расписание: { [date]: { date, slots: [...], batteryDutyIds: ['m01', ...] } }
       const [schedules, setSchedules] = useState(() => {
-        const s = localStorage.getItem('bat_v4_schedules');
+        const s = localStorage.getItem('bat_v5_schedules');
         return s ? JSON.parse(s) : {};
       });
 
-      // Книга долгов (Peer-to-Peer): [{ id, debtorId, creditorId, count, lastReason }]
       const [debts, setDebts] = useState(() => {
-        const s = localStorage.getItem('bat_v4_debts');
+        const s = localStorage.getItem('bat_v5_debts');
         return s ? JSON.parse(s) : [];
       });
 
-      // Настройки суточного наряда по батарее
       const [batteryWeight, setBatteryWeight] = useState(() => {
-        const s = localStorage.getItem('bat_v4_bweight');
+        const s = localStorage.getItem('bat_v5_bweight');
         return s !== null ? Number(s) : 0.5;
       });
-      const [protectRestDay, setProtectRestDay] = useState(true); // Защита дня сдачи наряда (D+1)
+      const [protectRestDay, setProtectRestDay] = useState(true);
 
       const [logs, setLogs] = useState(() => {
-        const s = localStorage.getItem('bat_v4_logs');
+        const s = localStorage.getItem('bat_v5_logs');
         return s ? JSON.parse(s) : [];
       });
 
@@ -155,11 +164,19 @@
       const [backupString, setBackupString] = useState('');
       const [isSyncing, setIsSyncing] = useState(false);
 
-      // Период
+      // Период расписания
       const [startDate, setStartDate] = useState(() => toISO(new Date()));
       const [daysCount, setDaysCount] = useState(7);
 
-      // Модалки
+      // Фильтры таблицы статистики
+      const [statSquadFilter, setStatSquadFilter] = useState(0); // 0 = Все, 1, 2, 3
+      const [statStatusFilter, setStatStatusFilter] = useState('ALL'); // ALL | ACTIVE | SICK | LEAVE
+      const [statTaskFilter, setStatTaskFilter] = useState('ALL'); // ALL | BATTERY | PENALTY | <title>
+      const [statDateScope, setStatDateScope] = useState('ALL'); // ALL | PERIOD
+      const [statSearch, setStatSearch] = useState('');
+      const [statSortBy, setStatSortBy] = useState('SCORE_DESC'); // SCORE_DESC | SCORE_ASC | TOTAL_DESC | NAME_ASC | TASK_DESC
+
+      // Модалки (доступны только админам)
       const [modalSlot, setModalSlot] = useState(null);
       const [assignMode, setAssignMode] = useState('REGULAR'); // REGULAR | DEBT_COVER | PENALTY
       const [batteryModalDate, setBatteryModalDate] = useState(null);
@@ -177,16 +194,16 @@
       const [newTplWeight, setNewTplWeight] = useState(1.0);
 
       // Автосохранение в LocalStorage
-      useEffect(() => localStorage.setItem('bat_v4_members', JSON.stringify(members)), [members]);
-      useEffect(() => localStorage.setItem('bat_v4_templates', JSON.stringify(taskTemplates)), [taskTemplates]);
-      useEffect(() => localStorage.setItem('bat_v4_schedules', JSON.stringify(schedules)), [schedules]);
-      useEffect(() => localStorage.setItem('bat_v4_debts', JSON.stringify(debts)), [debts]);
-      useEffect(() => localStorage.setItem('bat_v4_bweight', String(batteryWeight)), [batteryWeight]);
-      useEffect(() => localStorage.setItem('bat_v4_logs', JSON.stringify(logs)), [logs]);
+      useEffect(() => localStorage.setItem('bat_v5_members', JSON.stringify(members)), [members]);
+      useEffect(() => localStorage.setItem('bat_v5_templates', JSON.stringify(taskTemplates)), [taskTemplates]);
+      useEffect(() => localStorage.setItem('bat_v5_schedules', JSON.stringify(schedules)), [schedules]);
+      useEffect(() => localStorage.setItem('bat_v5_debts', JSON.stringify(debts)), [debts]);
+      useEffect(() => localStorage.setItem('bat_v5_bweight', String(batteryWeight)), [batteryWeight]);
+      useEffect(() => localStorage.setItem('bat_v5_logs', JSON.stringify(logs)), [logs]);
 
       const showToast = (msg) => {
         setToast(msg);
-        setTimeout(() => setToast(null), 2800);
+        setTimeout(() => setToast(null), 2600);
       };
 
       const addLog = (action, details, badge = 'INFO') => {
@@ -207,20 +224,19 @@
       };
 
       // =========================================================
-      // P2P КНИГА ДОЛГОВ: ЗАПИСЬ И АВТО-ВЗАИМОЗАЧЕТ (КЛИРИНГ)
+      // P2P КНИГА ДОЛГОВ
       // =========================================================
       const recordPeerDebt = (debtorId, creditorId, reasonStr) => {
+        if (!isUserAdmin) return;
         if (!debtorId || !creditorId || debtorId === creditorId) return;
 
         setDebts((prev) => {
           const copy = [...prev];
-          // Проверяем, не должен ли уже Кредитор Должнику (встречный долг)
           const reverseIdx = copy.findIndex(
             (d) => d.debtorId === creditorId && d.creditorId === debtorId && d.count > 0
           );
 
           if (reverseIdx !== -1) {
-            // Автоматический взаимозачет встречного долга!
             copy[reverseIdx] = {
               ...copy[reverseIdx],
               count: copy[reverseIdx].count - 1,
@@ -234,7 +250,6 @@
             return copy.filter((d) => d.count > 0);
           }
 
-          // Иначе увеличиваем или создаем долг debtorId -> creditorId
           const existingIdx = copy.findIndex(
             (d) => d.debtorId === debtorId && d.creditorId === creditorId
           );
@@ -260,7 +275,7 @@
       };
 
       // =========================================================
-      // ПРОВЕРКА СУТОЧНЫХ НАРЯДОВ ПО БАТАРЕЕ (ДЕНЬ D И ДЕНЬ СДАЧИ D+1)
+      // ПРОВЕРКА СУТОЧНЫХ НАРЯДОВ ПО БАТАРЕЕ
       // =========================================================
       const isOnBatteryDuty = (memberId, dateStr, schedMap = schedules) => {
         const day = schedMap[dateStr];
@@ -273,8 +288,31 @@
         return Boolean(schedMap[prevDate]?.batteryDutyIds?.includes(memberId));
       };
 
+      // Список дат текущего отображаемого периода
+      const periodDatesSet = useMemo(() => {
+        const set = new Set();
+        const base = new Date(startDate + 'T00:00:00');
+        for (let i = 0; i < daysCount; i++) {
+          const d = new Date(base);
+          d.setDate(base.getDate() + i);
+          set.add(toISO(d));
+        }
+        return set;
+      }, [startDate, daysCount]);
+
+      // Все уникальные виды нагрузок (из шаблонов и расписания) для колонок и фильтра таблицы
+      const allWorkloadTitles = useMemo(() => {
+        const titles = new Set(taskTemplates.map((t) => t.title));
+        Object.values(schedules).forEach((day) => {
+          (day?.slots || []).forEach((s) => {
+            if (s.title) titles.add(s.title);
+          });
+        });
+        return Array.from(titles);
+      }, [taskTemplates, schedules]);
+
       // =========================================================
-      // РАСЧЕТ СТАТИСТИКИ И БАЛАНСА (С УЧЕТОМ НАРЯДОВ ПО БАТАРЕЕ И ДОЛГОВ)
+      // РАСЧЕТ СТАТИСТИКИ И ТАБЛИЦЫ (С УЧЕТОМ ФИЛЬТРА ДАТ)
       // =========================================================
       const statsMap = useMemo(() => {
         const map = {};
@@ -284,31 +322,34 @@
             regularShifts: 0,
             penaltyShifts: 0,
             batteryCount: 0,
-            totalClassShifts: 0,
+            totalAll: 0,
             score: m.baseScore || 0,
             owesCount: 0,
             owedToMeCount: 0,
+            byTitle: {},
           };
         });
 
         Object.keys(schedules).sort().forEach((date) => {
+          if (statDateScope === 'PERIOD' && !periodDatesSet.has(date)) return;
           const day = schedules[date];
           if (!day) return;
 
-          // Учет суточных нарядов по батарее
           (day.batteryDutyIds || []).forEach((mId) => {
             if (map[mId]) {
               map[mId].batteryCount += 1;
+              map[mId].totalAll += 1;
               map[mId].score += Number(batteryWeight) || 0;
             }
           });
 
-          // Учет смен по классу
           (day.slots || []).forEach((s) => {
             if (!s.memberId || !map[s.memberId]) return;
             const st = map[s.memberId];
-            st.totalClassShifts += 1;
+            st.totalAll += 1;
             const w = Number(s.weight) || 1.0;
+
+            st.byTitle[s.title] = (st.byTitle[s.title] || 0) + 1;
 
             if (s.isPenalty) {
               st.penaltyShifts += 1;
@@ -319,17 +360,47 @@
           });
         });
 
-        // Учет активных долгов
         debts.forEach((d) => {
           if (map[d.debtorId]) map[d.debtorId].owesCount += d.count;
           if (map[d.creditorId]) map[d.creditorId].owedToMeCount += d.count;
         });
 
         return map;
-      }, [members, schedules, batteryWeight, debts]);
+      }, [members, schedules, batteryWeight, debts, statDateScope, periodDatesSet]);
+
+      // Отфильтрованный и отсортированный список для таблицы статистики
+      const filteredStatsList = useMemo(() => {
+        return Object.values(statsMap)
+          .filter((st) => {
+            if (statSquadFilter !== 0 && st.squad !== statSquadFilter) return false;
+            if (statStatusFilter !== 'ALL' && st.status !== statStatusFilter) return false;
+            if (
+              statSearch.trim() &&
+              !st.fullName.toLowerCase().includes(statSearch.trim().toLowerCase())
+            ) {
+              return false;
+            }
+            return true;
+          })
+          .sort((a, b) => {
+            if (statSortBy === 'NAME_ASC') return a.fullName.localeCompare(b.fullName, 'ru');
+            if (statSortBy === 'SCORE_ASC') return a.score - b.score;
+            if (statSortBy === 'TOTAL_DESC') return b.totalAll - a.totalAll;
+            if (statSortBy === 'TASK_DESC') {
+              const getVal = (item) => {
+                if (statTaskFilter === 'ALL') return item.totalAll;
+                if (statTaskFilter === 'BATTERY') return item.batteryCount;
+                if (statTaskFilter === 'PENALTY') return item.penaltyShifts;
+                return item.byTitle[statTaskFilter] || 0;
+              };
+              return getVal(b) - getVal(a);
+            }
+            return b.score - a.score; // SCORE_DESC по умолчанию
+          });
+      }, [statsMap, statSquadFilter, statStatusFilter, statSearch, statSortBy, statTaskFilter]);
 
       // =========================================================
-      // ГЕНЕРАЦИЯ СПРАВЕДЛИВОГО ГРАФИКА (С АВТОПОГАШЕНИЕМ ДОЛГОВ И ЗАЩИТОЙ БАТАРЕИ)
+      // ГЕНЕРАЦИЯ РАСПИСАНИЯ
       // =========================================================
       const generateSchedule = (keepManual = true) => {
         haptic('medium');
@@ -338,7 +409,6 @@
         const tempRoleCount = {};
         const lastDate = {};
 
-        // Копия текущих долгов для автоматического погашения при генерации
         let workingDebts = debts.map((d) => ({ ...d }));
         let autoRepaidCount = 0;
 
@@ -355,7 +425,6 @@
           period.push(toISO(d));
         }
 
-        // Учитываем историю до даты начала периода
         Object.keys(updated).sort().forEach((dKey) => {
           if (dKey < period[0]) {
             const day = updated[dKey];
@@ -381,7 +450,6 @@
           const existing = updated[dateStr];
           const batteryDutyIds = existing?.batteryDutyIds || [];
 
-          // Начисляем тяжесть суточного наряда тем, кто сегодня в наряде по батарее
           batteryDutyIds.forEach((mId) => {
             if (tempScore[mId] !== undefined) {
               tempScore[mId] += Number(batteryWeight) || 0;
@@ -406,9 +474,8 @@
           });
 
           let slots = templateSlots;
-          if (existing && keepManual && existing.slots?.length > 0) {
+          if (existing && keepManual && existing.slots) {
             slots = existing.slots.map((s) => {
-              // Если человек вручную стоял, но его поставили в наряд по батарее — освобождаем слот
               if (s.memberId && batteryDutyIds.includes(s.memberId)) {
                 return { ...s, memberId: null, isManual: false, isPenalty: false, repaidForName: null };
               }
@@ -434,7 +501,6 @@
               return;
             }
 
-            // Доступные бойцы (в строю, не заняты сегодня, не в наряде по батарее и не после сдачи наряда)
             const eligible = members.filter((m) => {
               if (m.status !== 'ACTIVE') return false;
               if (usedToday.has(m.id)) return false;
@@ -458,7 +524,6 @@
               let chosen = bestPool[Math.floor(Math.random() * bestPool.length)].m;
               let repaidForName = null;
 
-              // ПРОВЕРКА КНИГИ ДОЛГОВ: должен ли кто-то из доступных сегодня нашему кандидату chosen?
               const activeDebt = workingDebts.find(
                 (d) =>
                   d.creditorId === chosen.id &&
@@ -470,7 +535,6 @@
                 const debtorMember = getMember(activeDebt.debtorId);
                 if (debtorMember) {
                   repaidForName = chosen.fullName;
-                  // Вместо chosen выходит должник debtorMember, но балл очереди зачтется как отработанный!
                   chosen = debtorMember;
                   activeDebt.count -= 1;
                   autoRepaidCount += 1;
@@ -491,16 +555,12 @@
 
         if (autoRepaidCount > 0) {
           setDebts(workingDebts.filter((d) => d.count > 0));
-          addLog('🤝 Автовозврат долгов', `При составлении графика автоматически погашено смен по долгам: ${autoRepaidCount}`, 'DEBT');
+          addLog('🤝 Автовозврат долгов', `Погашено смен по долгам: ${autoRepaidCount}`, 'DEBT');
         }
 
         setSchedules(updated);
-        addLog('⚡ Автораспределение', `График сформирован на ${daysCount} дн. (с учетом нарядов по батарее)`);
-        showToast(
-          autoRepaidCount > 0
-            ? `График готов! Автоматически закрыто долгов: ${autoRepaidCount}`
-            : 'График успешно распределен!'
-        );
+        addLog('⚡ Автораспределение', `График сформирован на ${daysCount} дн.`);
+        showToast('График успешно распределен!');
       };
 
       useEffect(() => {
@@ -508,9 +568,28 @@
       }, []);
 
       // =========================================================
-      // НАЗНАЧЕНИЕ В СУТОЧНЫЙ НАРЯД ПО БАТАРЕЕ (С АВТОЗАМЕНОЙ В КЛАССЕ)
+      // УДАЛЕНИЕ ВСЕХ НАГРУЗОК НА СУТКИ (ОЧИСТКА ДНЯ)
+      // =========================================================
+      const clearAllDayWorkloads = (dateStr) => {
+        if (!isUserAdmin) return;
+        haptic('medium');
+        setSchedules((prev) => ({
+          ...prev,
+          [dateStr]: {
+            date: dateStr,
+            batteryDutyIds: [],
+            slots: [],
+          },
+        }));
+        addLog('🗑 Очистка суток', `Удалены все нагрузки и наряды на ${formatRuDate(dateStr)} (${dateStr})`);
+        showToast(`Все нагрузки на ${formatRuDate(dateStr)} удалены`);
+      };
+
+      // =========================================================
+      // НАЗНАЧЕНИЕ В СУТОЧНЫЙ НАРЯД ПО БАТАРЕЕ
       // =========================================================
       const toggleBatteryDutyMember = (dateStr, memberId) => {
+        if (!isUserAdmin) return;
         haptic('light');
         const day = schedules[dateStr] || { date: dateStr, batteryDutyIds: [], slots: [] };
         const currentList = day.batteryDutyIds || [];
@@ -528,7 +607,6 @@
           },
         };
 
-        // Если человека поставили в суточный наряд по батарее, освобождаем его от смены в классе в день D и D+1
         if (!exists) {
           const datesToCheck = protectRestDay ? [dateStr, addDaysISO(dateStr, 1)] : [dateStr];
           datesToCheck.forEach((dKey) => {
@@ -555,7 +633,7 @@
               if (replacement) {
                 busy.add(replacement.id);
                 addLog(
-                  '🛡️ Замена из-за наряда по батарее',
+                  '🛡️ Автозамена (Наряд батареи)',
                   `${formatRuDate(dKey)} [${slot.title}]: ${getName(memberId)} → ${getName(replacement.id)}`
                 );
                 return { ...slot, memberId: replacement.id, isManual: true };
@@ -573,6 +651,7 @@
       // =========================================================
       const replaceWithRandomLeastLoaded = (dateStr, slotObj, e) => {
         if (e) e.stopPropagation();
+        if (!isUserAdmin) return;
         haptic('medium');
         const day = schedules[dateStr];
         if (!day) return;
@@ -628,7 +707,7 @@
       // РУЧНАЯ ЗАМЕНА / ПОДМЕНА В ДОЛГ / ШТРАФНОЙ НАРЯД
       // =========================================================
       const handleAssignMember = (newMemberId) => {
-        if (!modalSlot) return;
+        if (!isUserAdmin || !modalSlot) return;
         haptic('light');
         const { date, slot } = modalSlot;
         const oldMemberId = slot.memberId;
@@ -641,7 +720,6 @@
         let repaidLabel = null;
 
         if (isDebtCover && oldMemberId && oldMemberId !== newMemberId) {
-          // oldMemberId просит newMemberId выйти за него -> oldMemberId становится должен newMemberId
           recordPeerDebt(oldMemberId, newMemberId, `${formatRuDate(date)} (${slot.title})`);
           repaidLabel = `Подмена за ${getMember(oldMemberId)?.fullName}`;
         }
@@ -682,10 +760,9 @@
         );
       };
 
-      // Добавление и удаление слота на конкретный день
       const handleAddCustomSlotToDay = (e) => {
         e.preventDefault();
-        if (!addSlotDate || !customSlotTitle.trim()) return;
+        if (!isUserAdmin || !addSlotDate || !customSlotTitle.trim()) return;
         const day = schedules[addSlotDate] || { date: addSlotDate, batteryDutyIds: [], slots: [] };
         const usedToday = new Set([
           ...(day.batteryDutyIds || []),
@@ -728,6 +805,7 @@
 
       const handleDeleteSlotFromDay = (dateStr, slotObj, e) => {
         if (e) e.stopPropagation();
+        if (!isUserAdmin) return;
         setSchedules((prev) => ({
           ...prev,
           [dateStr]: {
@@ -739,12 +817,26 @@
         if (modalSlot) setModalSlot(null);
       };
 
+      const handleRenameSlot = (dateStr, slotObj, newTitle) => {
+        if (!isUserAdmin || !newTitle.trim()) return;
+        setSchedules((prev) => ({
+          ...prev,
+          [dateStr]: {
+            ...prev[dateStr],
+            slots: prev[dateStr].slots.map((s) =>
+              s.id === slotObj.id ? { ...s, title: newTitle.trim() } : s
+            ),
+          },
+        }));
+      };
+
       // =========================================================
-      // ОБЛАЧНАЯ СИНХРОНИЗАЦИЯ (SUPABASE REST API + КОД БЭКАПА)
+      // ОБЛАЧНАЯ СИНХРОНИЗАЦИЯ
       // =========================================================
       const pushToSupabaseCloud = async () => {
+        if (!isUserAdmin) return;
         if (!supaUrl || !supaKey) {
-          showToast('Введите URL и Key Supabase во вкладке Облако');
+          showToast('Введите URL и Key Supabase');
           return;
         }
         setIsSyncing(true);
@@ -770,10 +862,10 @@
             body: JSON.stringify(payload),
           });
 
-          if (!res.ok) throw new Error('Ошибка ответа сервера');
-          showToast('☁️ Данные успешно выгружены в облако!');
+          if (!res.ok) throw new Error('Ошибка сервера');
+          showToast('☁️ График выгружен в облако!');
         } catch (err) {
-          showToast('Ошибка выгрузки. Проверьте таблицу duty_sync');
+          showToast('Ошибка выгрузки в облако');
         } finally {
           setIsSyncing(false);
         }
@@ -802,9 +894,9 @@
             if (st.taskTemplates) setTaskTemplates(st.taskTemplates);
             if (st.schedules) setSchedules(st.schedules);
             if (st.debts) setDebts(st.debts);
-            showToast('☁️ График загружен из облака!');
+            showToast('☁️ Актуальный график загружен!');
           } else {
-            showToast('В облаке пока нет записи для этой комнаты');
+            showToast('Запись для этой комнаты не найдена');
           }
         } catch (err) {
           showToast('Ошибка загрузки из облака');
@@ -822,7 +914,7 @@
           )
         );
         navigator.clipboard.writeText(snapshot);
-        showToast('Код базы скопирован! Перешлите его в Telegram');
+        showToast('Код базы скопирован в буфер обмена!');
       };
 
       const importSnapshotCode = () => {
@@ -834,29 +926,32 @@
           if (decoded.schedules) setSchedules(decoded.schedules);
           if (decoded.debts) setDebts(decoded.debts);
           setBackupString('');
-          showToast('✅ База успешно синхронизирована по коду!');
+          showToast('✅ График успешно обновлен по коду!');
         } catch (e) {
-          showToast('❌ Неверный формат кода базы');
+          showToast('❌ Неверный код базы');
         }
       };
 
-      // Сводка в Telegram
       const shareToTelegramChat = () => {
         const lines = [`📋 *ГРАФИК НАРЯДОВ И ДЕЖУРСТВ*`, ''];
         visibleDays.forEach((d) => {
           lines.push(`📅 *${formatRuDate(d.date).toUpperCase()}* (${d.date})`);
           if (d.batteryDutyIds?.length > 0) {
             const bNames = d.batteryDutyIds.map((id) => getMember(id)?.fullName).join(', ');
-            lines.push(`🛡️ *Наряд по батарее (сутки):* ${bNames}`);
+            lines.push(`🛡️ *Наряд по батарее:* ${bNames}`);
           }
-          d.slots.forEach((s) => {
-            const extra = s.isPenalty
-              ? ' [ШТРАФ]'
-              : s.repaidForName
-              ? ` [🤝 ${s.repaidForName}]`
-              : '';
-            lines.push(`• ${s.title}: *${getName(s.memberId)}*${extra}`);
-          });
+          if (!d.slots || d.slots.length === 0) {
+            lines.push(`— Нагрузок по классу нет`);
+          } else {
+            d.slots.forEach((s) => {
+              const extra = s.isPenalty
+                ? ' [ШТРАФ]'
+                : s.repaidForName
+                ? ` [🤝 ${s.repaidForName}]`
+                : '';
+              lines.push(`• ${s.title}: *${getName(s.memberId)}*${extra}`);
+            });
+          }
           lines.push('');
         });
 
@@ -869,8 +964,7 @@
           });
         }
 
-        const text = lines.join('\n');
-        navigator.clipboard.writeText(text);
+        navigator.clipboard.writeText(lines.join('\n'));
         showToast('Сводка скопирована для чата Telegram!');
       };
 
@@ -881,7 +975,7 @@
           const d = new Date(base);
           d.setDate(base.getDate() + i);
           const iso = toISO(d);
-          if (schedules[iso]) list.push(schedules[iso]);
+          list.push(schedules[iso] || { date: iso, batteryDutyIds: [], slots: [] });
         }
         return list;
       }, [schedules, startDate, daysCount]);
@@ -900,15 +994,19 @@
           <header className="bg-indigo-700 text-white px-4 pt-4 pb-3 sticky top-0 z-20 shadow">
             <div className="flex items-center justify-between">
               <div>
-                <div className="flex items-center gap-1.5">
-                  <h1 className="text-base font-extrabold tracking-tight">Контроль Взвода • PRO</h1>
-                  {tg?.initDataUnsafe?.user && (
-                    <span className="text-[10px] bg-emerald-400/20 text-emerald-200 px-1.5 py-0.5 rounded font-bold">
-                      TG MiniApp
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h1 className="text-base font-extrabold tracking-tight">Контроль Взвода</h1>
+                  {isUserAdmin ? (
+                    <span className="text-[10px] bg-amber-400 text-slate-950 px-1.5 py-0.5 rounded font-extrabold">
+                      👑 Редактор
+                    </span>
+                  ) : (
+                    <span className="text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded font-semibold">
+                      👁 Только просмотр
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-indigo-200">
+                <p className="text-[11px] text-indigo-200 mt-0.5">
                   Строй: {members.filter((m) => m.status === 'ACTIVE').length}/23 • Долгов: {totalActiveDebts}
                 </p>
               </div>
@@ -916,13 +1014,13 @@
                 onClick={shareToTelegramChat}
                 className="bg-white/15 active:bg-white/25 text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-white/20"
               >
-                📤 В Telegram
+                📤 В чат
               </button>
             </div>
           </header>
 
           {/* =========================================================
-              ВКЛАДКА 1: РАСПИСАНИЕ (С НАРЯДОМ ПО БАТАРЕЕ И ДОЛГАМИ)
+              ВКЛАДКА 1: РАСПИСАНИЕ
              ========================================================= */}
           {tab === 'SCHEDULE' && (
             <div className="p-3 space-y-3">
@@ -938,7 +1036,7 @@
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold uppercase text-slate-400">Период (Пн–Вс)</label>
+                    <label className="text-[10px] font-bold uppercase text-slate-400">Период обзора</label>
                     <select
                       value={daysCount}
                       onChange={(e) => setDaysCount(Number(e.target.value))}
@@ -951,20 +1049,23 @@
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between gap-2 pt-1">
-                  <button
-                    onClick={() => generateSchedule(true)}
-                    className="flex-1 py-2 bg-indigo-600 active:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs"
-                  >
-                    ⚡ Заполнить (с учетом долгов)
-                  </button>
-                  <button
-                    onClick={() => generateSchedule(false)}
-                    className="px-3 py-2 bg-slate-100 active:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl"
-                  >
-                    🔄 Сброс
-                  </button>
-                </div>
+                {/* Кнопки генерации видны ТОЛЬКО 4 администраторам */}
+                {isUserAdmin && (
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <button
+                      onClick={() => generateSchedule(true)}
+                      className="flex-1 py-2 bg-indigo-600 active:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs"
+                    >
+                      ⚡ Заполнить (с учетом долгов)
+                    </button>
+                    <button
+                      onClick={() => generateSchedule(false)}
+                      className="px-3 py-2 bg-slate-100 active:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl"
+                    >
+                      🔄 Пересчет
+                    </button>
+                  </div>
+                )}
               </div>
 
               {visibleDays.map((day) => {
@@ -973,36 +1074,49 @@
 
                 return (
                   <div key={day.date} className="rounded-2xl border bg-white border-slate-200 p-3.5 shadow-xs space-y-2.5">
-                    <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-100 flex-wrap gap-1.5">
                       <div>
                         <span className="text-sm font-extrabold capitalize text-slate-900">
                           {formatRuDate(day.date)}
                         </span>
-                        <span className="ml-2 text-xs font-mono text-slate-400">{day.date}</span>
+                        <span className="ml-1.5 text-xs font-mono text-slate-400">{day.date}</span>
                       </div>
-                      <div className="flex gap-1.5">
-                        <button
-                          onClick={() => setBatteryModalDate(day.date)}
-                          className="text-[11px] font-bold px-2 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200"
-                        >
-                          🛡️ Наряд батареи
-                        </button>
-                        <button
-                          onClick={() => setAddSlotDate(day.date)}
-                          className="text-[11px] font-bold px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        >
-                          + Задача
-                        </button>
-                      </div>
+
+                      {/* Кнопки управления сутками — ТОЛЬКО для 4 админов */}
+                      {isUserAdmin && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setBatteryModalDate(day.date)}
+                            className="text-[10px] font-bold px-2 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200"
+                          >
+                            🛡️ Батарея
+                          </button>
+                          <button
+                            onClick={() => setAddSlotDate(day.date)}
+                            className="text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          >
+                            + Задача
+                          </button>
+                          {(day.slots?.length > 0 || batteryIds.length > 0) && (
+                            <button
+                              onClick={() => clearAllDayWorkloads(day.date)}
+                              className="text-[10px] font-bold px-2 py-1 rounded-lg bg-rose-50 text-rose-600 border border-rose-200 active:bg-rose-100"
+                              title="Удалить все нагрузки на эти сутки"
+                            >
+                              🗑 Очистить сутки
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
 
-                    {/* Плашка суточного наряда по батарее и сдачи наряда */}
+                    {/* Плашка суточного наряда по батарее */}
                     {(batteryIds.length > 0 || (protectRestDay && prevDayBatteryIds.length > 0)) && (
                       <div className="p-2 rounded-xl bg-amber-50/90 border border-amber-200 text-xs space-y-1">
                         {batteryIds.length > 0 && (
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-amber-900">
-                              🛡️ В суточном наряде (+{batteryWeight} б.):
+                              🛡️ Наряд по батарее (+{batteryWeight} б.):
                             </span>
                             <span className="font-extrabold text-amber-950">
                               {batteryIds.map((id) => getMember(id)?.fullName).join(', ')}
@@ -1011,7 +1125,7 @@
                         )}
                         {protectRestDay && prevDayBatteryIds.length > 0 && (
                           <div className="flex items-center justify-between text-[11px] text-slate-500">
-                            <span>💤 После наряда (сдача/отдых):</span>
+                            <span>💤 После наряда (сдача):</span>
                             <span className="font-semibold">
                               {prevDayBatteryIds.map((id) => getMember(id)?.fullName).join(', ')}
                             </span>
@@ -1020,73 +1134,88 @@
                       </div>
                     )}
 
-                    {/* Слоты дежурств и уборок по классу */}
-                    <div className="space-y-2">
-                      {day.slots.map((slot) => {
-                        const m = getMember(slot.memberId);
-                        return (
-                          <div
-                            key={slot.id}
-                            onClick={() => {
-                              setAssignMode('REGULAR');
-                              setModalSlot({ date: day.date, slot });
-                            }}
-                            className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 active:scale-[0.99] transition ${
-                              slot.isPenalty
-                                ? 'bg-rose-50 border-rose-300'
-                                : slot.repaidForName
-                                ? 'bg-emerald-50/70 border-emerald-300'
-                                : 'bg-slate-50/90 border-slate-200'
-                            }`}
-                          >
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-[10px] font-extrabold uppercase tracking-wide text-indigo-700">
-                                  {slot.title}
-                                </span>
-                                {slot.isPenalty && (
-                                  <span className="text-[9px] font-bold px-1.5 py-0.2 bg-rose-200 text-rose-900 rounded">
-                                    ШТРАФНОЙ
+                    {/* Список задач на сутки */}
+                    {(!day.slots || day.slots.length === 0) ? (
+                      <div className="text-center py-3 text-xs text-slate-400">
+                        На эти сутки нагрузок по классу нет
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {day.slots.map((slot) => {
+                          const m = getMember(slot.memberId);
+                          return (
+                            <div
+                              key={slot.id}
+                              onClick={() => {
+                                if (!isUserAdmin) return;
+                                setAssignMode('REGULAR');
+                                setModalSlot({ date: day.date, slot });
+                              }}
+                              className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 transition ${
+                                isUserAdmin ? 'active:scale-[0.99] cursor-pointer' : ''
+                              } ${
+                                slot.isPenalty
+                                  ? 'bg-rose-50 border-rose-300'
+                                  : slot.repaidForName
+                                  ? 'bg-emerald-50/70 border-emerald-300'
+                                  : 'bg-slate-50/90 border-slate-200'
+                              }`}
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-[10px] font-extrabold uppercase tracking-wide text-indigo-700">
+                                    {slot.title}
                                   </span>
-                                )}
-                                {slot.repaidForName && (
-                                  <span className="text-[9px] font-bold px-1.5 py-0.2 bg-emerald-200 text-emerald-900 rounded">
-                                    🤝 Долг за: {slot.repaidForName}
+                                  <span className="text-[9px] font-mono text-slate-400">
+                                    (вес {slot.weight})
                                   </span>
-                                )}
+                                  {slot.isPenalty && (
+                                    <span className="text-[9px] font-bold px-1.5 py-0.2 bg-rose-200 text-rose-900 rounded">
+                                      ШТРАФНОЙ
+                                    </span>
+                                  )}
+                                  {slot.repaidForName && (
+                                    <span className="text-[9px] font-bold px-1.5 py-0.2 bg-emerald-200 text-emerald-900 rounded">
+                                      🤝 Долг за: {slot.repaidForName}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  <span className="text-sm font-bold text-slate-900 truncate">
+                                    {m ? m.fullName : 'Не назначен'}
+                                  </span>
+                                  {m && (
+                                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${SQUAD_BADGE[m.squad]}`}>
+                                      {m.squad} отд.
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex items-center gap-1.5 mt-1">
-                                <span className="text-sm font-bold text-slate-900 truncate">
-                                  {m ? m.fullName : 'Не назначен'}
-                                </span>
-                                {m && (
-                                  <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${SQUAD_BADGE[m.squad]}`}>
-                                    {m.squad} отд.
-                                  </span>
-                                )}
-                              </div>
-                            </div>
 
-                            <div className="flex items-center gap-1 shrink-0">
-                              <button
-                                onClick={(e) => replaceWithRandomLeastLoaded(day.date, slot, e)}
-                                className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 active:bg-indigo-50 text-xs font-bold shadow-2xs"
-                                title="Случайный из менее загруженных"
-                              >
-                                🎲
-                              </button>
-                              <button
-                                onClick={(e) => handleDeleteSlotFromDay(day.date, slot, e)}
-                                className="px-2 py-1.5 rounded-lg bg-white border border-slate-200 text-rose-500 text-xs font-bold"
-                                title="Удалить нагрузку"
-                              >
-                                🗑
-                              </button>
+                              {/* Кнопки рандома и удаления слота — ТОЛЬКО для 4 админов */}
+                              {isUserAdmin && (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    onClick={(e) => replaceWithRandomLeastLoaded(day.date, slot, e)}
+                                    className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 active:bg-indigo-50 text-xs font-bold shadow-2xs"
+                                    title="Случайный из менее загруженных"
+                                  >
+                                    🎲
+                                  </button>
+                                  <button
+                                    onClick={(e) => handleDeleteSlotFromDay(day.date, slot, e)}
+                                    className="px-2 py-1.5 rounded-lg bg-white border border-slate-200 text-rose-500 text-xs font-bold"
+                                    title="Удалить эту задачу"
+                                  >
+                                    🗑
+                                  </button>
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -1094,7 +1223,222 @@
           )}
 
           {/* =========================================================
-              ВКЛАДКА 2: P2P КНИГА ДОЛГОВ ПО ПОДМЕНАМ
+              ВКЛАДКА 2: ТАБЛИЦА СТАТИСТИКИ ПО ВСЕМ НАГРУЗКАМ И НАРЯДАМ С ФИЛЬТРАЦИЕЙ
+             ========================================================= */}
+          {tab === 'STATS' && (
+            <div className="p-3 space-y-3">
+              {/* Панель фильтров таблицы */}
+              <div className="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-extrabold text-slate-900">
+                    📊 Сводная таблица нагрузок и нарядов
+                  </h2>
+                  <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">
+                    Найдено: {filteredStatsList.length}
+                  </span>
+                </div>
+
+                {/* Поиск по фамилии + Период */}
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    placeholder="🔍 Поиск по фамилии..."
+                    value={statSearch}
+                    onChange={(e) => setStatSearch(e.target.value)}
+                    className="px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs font-semibold outline-none"
+                  />
+                  <select
+                    value={statDateScope}
+                    onChange={(e) => setStatDateScope(e.target.value)}
+                    className="px-2 py-1.5 border border-slate-300 rounded-xl text-xs font-bold bg-white"
+                  >
+                    <option value="ALL">📅 За всё время</option>
+                    <option value="PERIOD">📅 За период ({daysCount} дн.)</option>
+                  </select>
+                </div>
+
+                {/* Фильтр по отделению */}
+                <div className="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-xl">
+                  {[
+                    { id: 0, label: 'Все (23)' },
+                    { id: 1, label: '1 отд.' },
+                    { id: 2, label: '2 отд.' },
+                    { id: 3, label: '3 отд.' },
+                  ].map((sq) => (
+                    <button
+                      key={sq.id}
+                      onClick={() => setStatSquadFilter(sq.id)}
+                      className={`py-1 rounded-lg text-[11px] font-bold transition ${
+                        statSquadFilter === sq.id ? 'bg-white text-indigo-600 shadow-2xs' : 'text-slate-600'
+                      }`}
+                    >
+                      {sq.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Фильтр по виду нагрузки/наряда, Статусу и Сортировке */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-400">Вид наряда / нагрузки</label>
+                    <select
+                      value={statTaskFilter}
+                      onChange={(e) => {
+                        setStatTaskFilter(e.target.value);
+                        if (e.target.value !== 'ALL') setStatSortBy('TASK_DESC');
+                      }}
+                      className="w-full mt-0.5 px-2 py-1.5 border border-slate-300 rounded-xl text-xs font-bold bg-white"
+                    >
+                      <option value="ALL">Все нагрузки и наряды</option>
+                      <option value="BATTERY">🛡️ Наряд по батарее (сутки)</option>
+                      {allWorkloadTitles.map((title) => (
+                        <option key={title} value={title}>
+                          📌 {title}
+                        </option>
+                      ))}
+                      <option value="PENALTY">⚠ Штрафные наряды</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-400">Сортировка</label>
+                    <select
+                      value={statSortBy}
+                      onChange={(e) => setStatSortBy(e.target.value)}
+                      className="w-full mt-0.5 px-2 py-1.5 border border-slate-300 rounded-xl text-xs font-bold bg-white"
+                    >
+                      <option value="SCORE_DESC">Индекс (по убыванию)</option>
+                      <option value="SCORE_ASC">Индекс (кто свободнее)</option>
+                      <option value="TOTAL_DESC">Всего смен (больше)</option>
+                      <option value="TASK_DESC">По выбранной нагрузке</option>
+                      <option value="NAME_ASC">По алфавиту (А–Я)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Фильтр по статусу доступности */}
+                <div className="flex items-center justify-between text-xs pt-0.5">
+                  <span className="text-[11px] font-bold text-slate-500">Статус бойца:</span>
+                  <div className="flex gap-1">
+                    {[
+                      { id: 'ALL', label: 'Все' },
+                      { id: 'ACTIVE', label: 'В строю' },
+                      { id: 'SICK', label: 'Больничный' },
+                      { id: 'LEAVE', label: 'Отпуск' },
+                    ].map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => setStatStatusFilter(s.id)}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border ${
+                          statStatusFilter === s.id
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white text-slate-600 border-slate-200'
+                        }`}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* СВОДНАЯ ТАБЛИЦА СТАТИСТИКИ (ГОРИЗОНТАЛЬНЫЙ СКРОЛЛ ДЛЯ ВСЕХ КОЛОНОК) */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-extrabold uppercase text-slate-500">
+                        <th className="py-2.5 px-3 sticky left-0 bg-slate-50 z-10">Боец</th>
+                        <th className="py-2.5 px-2 text-center bg-indigo-50/60 text-indigo-800">Индекс</th>
+                        <th className="py-2.5 px-2 text-center">Всего</th>
+                        <th className="py-2.5 px-2 text-center text-amber-800 bg-amber-50/50">🛡️ Батарея</th>
+                        {allWorkloadTitles.map((title) => (
+                          <th
+                            key={title}
+                            className={`py-2.5 px-2 text-center whitespace-nowrap ${
+                              statTaskFilter === title ? 'bg-indigo-100 text-indigo-900' : ''
+                            }`}
+                          >
+                            {title}
+                          </th>
+                        ))}
+                        <th className="py-2.5 px-2 text-center text-rose-700">⚠ Штраф</th>
+                        <th className="py-2.5 px-2 text-center">Статус</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredStatsList.map((st) => (
+                        <tr key={st.id} className="hover:bg-slate-50/80">
+                          <td className="py-2 px-3 sticky left-0 bg-white z-10 border-r border-slate-100">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-[9px] font-bold px-1 rounded ${SQUAD_BADGE[st.squad]}`}>
+                                {st.squad}
+                              </span>
+                              <span className="font-bold text-slate-900">{st.fullName}</span>
+                            </div>
+                          </td>
+                          <td className="py-2 px-2 text-center font-mono font-extrabold text-indigo-700 bg-indigo-50/30">
+                            {st.score.toFixed(1)}
+                          </td>
+                          <td className="py-2 px-2 text-center font-bold text-slate-900">
+                            {st.totalAll}
+                          </td>
+                          <td className="py-2 px-2 text-center font-bold text-amber-800 bg-amber-50/30">
+                            {st.batteryCount || 0}
+                          </td>
+                          {allWorkloadTitles.map((title) => (
+                            <td
+                              key={title}
+                              className={`py-2 px-2 text-center font-semibold ${
+                                statTaskFilter === title ? 'bg-indigo-50 font-extrabold text-indigo-900' : 'text-slate-700'
+                              }`}
+                            >
+                              {st.byTitle[title] || 0}
+                            </td>
+                          ))}
+                          <td className="py-2 px-2 text-center">
+                            {st.penaltyShifts > 0 ? (
+                              <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 font-bold text-[10px]">
+                                +{st.penaltyShifts}
+                              </span>
+                            ) : (
+                              <span className="text-slate-300">0</span>
+                            )}
+                          </td>
+                          <td className="py-2 px-2 text-center whitespace-nowrap">
+                            {isUserAdmin ? (
+                              <select
+                                value={st.status}
+                                onChange={(e) => {
+                                  const nextStatus = e.target.value;
+                                  setMembers((prev) =>
+                                    prev.map((x) => (x.id === st.id ? { ...x, status: nextStatus } : x))
+                                  );
+                                  showToast(`${st.fullName}: ${STATUS_INFO[nextStatus].label}`);
+                                }}
+                                className={`text-[10px] font-bold px-1.5 py-1 rounded-lg border outline-none ${STATUS_INFO[st.status].color}`}
+                              >
+                                <option value="ACTIVE">В строю</option>
+                                <option value="SICK">Больничный</option>
+                                <option value="LEAVE">Отпуск</option>
+                              </select>
+                            ) : (
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_INFO[st.status].color}`}>
+                                {STATUS_INFO[st.status].label}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* =========================================================
+              ВКЛАДКА 3: КНИГА ДОЛГОВ (P2P ВЗАИМОЗАЧЕТ)
              ========================================================= */}
           {tab === 'DEBTS' && (
             <div className="p-3 space-y-3">
@@ -1104,13 +1448,13 @@
                     🤝 Книга долгов (Peer-to-Peer взаимозачет)
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Когда один боец подменяет другого в графике через кнопку «Подмена в долг», запись появляется здесь. При следующей генерации графика система автоматически поставит должника вместо кредитора!
+                    Учет личных подмен между бойцами. При автозаполнении графика должник автоматически ставится в смену за кредитора.
                   </p>
                 </div>
 
                 {debts.length === 0 ? (
                   <div className="py-6 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 text-xs text-slate-400">
-                    Активных долгов по подменам нет. Все в расчете!
+                    Активных долгов по подменам нет
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -1126,172 +1470,102 @@
                             <span className="text-emerald-700">{getName(d.creditorId)}</span>
                           </div>
                           <div className="text-[11px] text-slate-500 mt-0.5">
-                            Количество смен: <b>{d.count}</b> • {d.lastReason || 'Личная подмена'}
+                            Смен: <b>{d.count}</b> • {d.lastReason || 'Подмена'}
                           </div>
                         </div>
-                        <button
-                          onClick={() => {
-                            setDebts((prev) =>
-                              prev
-                                .map((x) => (x.id === d.id ? { ...x, count: x.count - 1 } : x))
-                                .filter((x) => x.count > 0)
-                            );
-                            showToast('1 смена долга списана вручную');
-                          }}
-                          className="px-2.5 py-1.5 rounded-lg bg-white border border-amber-300 text-amber-900 text-xs font-bold shrink-0"
-                        >
-                          Простить 1
-                        </button>
+                        {isUserAdmin && (
+                          <button
+                            onClick={() => {
+                              setDebts((prev) =>
+                                prev
+                                  .map((x) => (x.id === d.id ? { ...x, count: x.count - 1 } : x))
+                                  .filter((x) => x.count > 0)
+                              );
+                              showToast('1 смена долга списана');
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg bg-white border border-amber-300 text-amber-900 text-xs font-bold shrink-0"
+                          >
+                            Списать 1
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
                 )}
 
-                {/* Ручное добавление долга */}
-                <div className="pt-3 border-t border-slate-100 space-y-2">
-                  <div className="text-xs font-bold text-slate-700">Записать долг вручную:</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-slate-400">Кто должен</label>
-                      <select
-                        value={manualDebtor}
-                        onChange={(e) => setManualDebtor(e.target.value)}
-                        className="w-full mt-0.5 px-2 py-1.5 border border-slate-300 rounded-xl text-xs font-bold bg-white"
-                      >
-                        {members.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.fullName} ({m.squad} отд.)
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-slate-400">Кому должен</label>
-                      <select
-                        value={manualCreditor}
-                        onChange={(e) => setManualCreditor(e.target.value)}
-                        className="w-full mt-0.5 px-2 py-1.5 border border-slate-300 rounded-xl text-xs font-bold bg-white"
-                      >
-                        {members.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.fullName} ({m.squad} отд.)
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => {
-                      if (manualDebtor === manualCreditor) {
-                        showToast('Выберите двух разных людей');
-                        return;
-                      }
-                      recordPeerDebt(manualDebtor, manualCreditor, 'Ручная запись');
-                      showToast('Запись добавлена (с проверкой взаимозачета)');
-                    }}
-                    className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl"
-                  >
-                    + Зафиксировать долг (или сделать взаимозачет)
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* =========================================================
-              ВКЛАДКА 3: ОТДЕЛЕНИЯ И БАЛАНС НАГРУЗКИ (23 ЧЕЛ.)
-             ========================================================= */}
-          {tab === 'MEMBERS' && (
-            <div className="p-3 space-y-2.5">
-              <div className="grid grid-cols-4 gap-1.5 bg-white p-1.5 rounded-2xl border border-slate-200">
-                {[
-                  { id: 0, label: 'Все (23)' },
-                  { id: 1, label: '1 отд. (5)' },
-                  { id: 2, label: '2 отд. (9)' },
-                  { id: 3, label: '3 отд. (9)' },
-                ].map((sq) => (
-                  <button
-                    key={sq.id}
-                    onClick={() => setSquadFilter(sq.id)}
-                    className={`py-1.5 rounded-xl text-xs font-bold transition ${
-                      squadFilter === sq.id ? 'bg-indigo-600 text-white' : 'text-slate-600'
-                    }`}
-                  >
-                    {sq.label}
-                  </button>
-                ))}
-              </div>
-
-              {members
-                .filter((m) => squadFilter === 0 || m.squad === squadFilter)
-                .sort((a, b) => (statsMap[b.id]?.score || 0) - (statsMap[a.id]?.score || 0))
-                .map((m) => {
-                  const st = statsMap[m.id];
-                  return (
-                    <div key={m.id} className="bg-white rounded-xl p-3 border border-slate-200 flex items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-bold text-slate-900">{m.fullName}</span>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${SQUAD_BADGE[m.squad]}`}>
-                            {m.squad} отд.
-                          </span>
-                          <span className="text-[11px] font-mono font-bold bg-indigo-50 text-indigo-700 px-1.5 rounded">
-                            {st.score.toFixed(1)} б.
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-slate-500 mt-0.5 flex flex-wrap gap-x-2">
-                          <span>Класс: <b>{st.regularShifts}</b></span>
-                          <span>• Батарея: <b>{st.batteryCount}</b></span>
-                          {st.owesCount > 0 && (
-                            <span className="text-rose-600 font-bold">• Должен: {st.owesCount}</span>
-                          )}
-                          {st.owedToMeCount > 0 && (
-                            <span className="text-emerald-600 font-bold">• Ему должны: {st.owedToMeCount}</span>
-                          )}
-                        </div>
+                {/* Ручное добавление долга — ТОЛЬКО для 4 администраторов */}
+                {isUserAdmin && (
+                  <div className="pt-3 border-t border-slate-100 space-y-2">
+                    <div className="text-xs font-bold text-slate-700">Записать долг вручную:</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] font-bold uppercase text-slate-400">Кто должен</label>
+                        <select
+                          value={manualDebtor}
+                          onChange={(e) => setManualDebtor(e.target.value)}
+                          className="w-full mt-0.5 px-2 py-1.5 border border-slate-300 rounded-xl text-xs font-bold bg-white"
+                        >
+                          {members.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.fullName} ({m.squad} отд.)
+                            </option>
+                          ))}
+                        </select>
                       </div>
-                      <select
-                        value={m.status}
-                        onChange={(e) => {
-                          const nextStatus = e.target.value;
-                          setMembers((prev) =>
-                            prev.map((x) => (x.id === m.id ? { ...x, status: nextStatus } : x))
-                          );
-                          showToast(`${m.fullName}: ${STATUS_INFO[nextStatus].label}`);
-                        }}
-                        className={`text-xs font-bold px-2 py-1.5 rounded-xl border outline-none ${STATUS_INFO[m.status].color}`}
-                      >
-                        <option value="ACTIVE">В строю</option>
-                        <option value="SICK">Больничный</option>
-                        <option value="LEAVE">Отпуск</option>
-                      </select>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase text-slate-400">Кому должен</label>
+                        <select
+                          value={manualCreditor}
+                          onChange={(e) => setManualCreditor(e.target.value)}
+                          className="w-full mt-0.5 px-2 py-1.5 border border-slate-300 rounded-xl text-xs font-bold bg-white"
+                        >
+                          {members.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.fullName} ({m.squad} отд.)
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                  );
-                })}
+                    <button
+                      onClick={() => {
+                        if (manualDebtor === manualCreditor) {
+                          showToast('Выберите двух разных людей');
+                          return;
+                        }
+                        recordPeerDebt(manualDebtor, manualCreditor, 'Ручная запись');
+                        showToast('Долг зафиксирован');
+                      }}
+                      className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl"
+                    >
+                      + Зафиксировать долг
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
           {/* =========================================================
-              ВКЛАДКА 4: НАСТРОЙКИ НАГРУЗОК И СУТОЧНОГО НАРЯДА
+              ВКЛАДКА 4: НАСТРОЙКИ НАГРУЗОК (ТОЛЬКО ДЛЯ 4 АДМИНОВ)
              ========================================================= */}
-          {tab === 'TASKS' && (
+          {tab === 'TASKS' && isUserAdmin && (
             <div className="p-3 space-y-3">
-              {/* Настройки тяжести суточного наряда по батарее */}
               <div className="bg-amber-50/90 rounded-2xl p-3.5 border border-amber-200 space-y-2.5">
                 <h2 className="text-xs font-extrabold uppercase text-amber-900">
                   🛡️ Правила «Суточного наряда по батарее»
                 </h2>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-amber-950">Бонус тяжести в общий баланс:</span>
+                  <span className="font-semibold text-amber-950">Бонус тяжести в баланс:</span>
                   <select
                     value={batteryWeight}
                     onChange={(e) => setBatteryWeight(Number(e.target.value))}
                     className="px-2.5 py-1 rounded-lg border border-amber-300 bg-white font-bold"
                   >
                     <option value={0}>0 баллов (только освобождение)</option>
-                    <option value={0.5}>+0.5 балла за сутки (Рекомендуется)</option>
-                    <option value={1.0}>+1.0 балл (как полная смена)</option>
-                    <option value={1.5}>+1.5 балла (повышенный)</option>
+                    <option value={0.5}>+0.5 балла за сутки</option>
+                    <option value={1.0}>+1.0 балл (как смена)</option>
+                    <option value={1.5}>+1.5 балла</option>
                   </select>
                 </div>
                 <label className="flex items-center gap-2 text-xs font-semibold text-amber-950 pt-1">
@@ -1301,13 +1575,12 @@
                     onChange={(e) => setProtectRestDay(e.target.checked)}
                     className="rounded text-amber-600"
                   />
-                  Не ставить на уборку класса в день сдачи суточного наряда (D+1)
+                  Освобождать от работ по классу в день сдачи наряда (D+1)
                 </label>
               </div>
 
-              {/* Шаблоны ежедневных задач */}
               <div className="bg-white rounded-2xl p-3.5 border border-slate-200 space-y-3">
-                <h2 className="text-sm font-extrabold text-slate-900">Шаблон ежедневных задач</h2>
+                <h2 className="text-sm font-extrabold text-slate-900">Шаблон ежедневных нагрузок</h2>
                 <div className="space-y-2">
                   {taskTemplates.map((tpl) => (
                     <div key={tpl.id} className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
@@ -1380,28 +1653,43 @@
           )}
 
           {/* =========================================================
-              ВКЛАДКА 5: TELEGRAM MINI APP & ОБЛАЧНАЯ СИНХРОНИЗАЦИЯ
+              ВКЛАДКА 5: СИНХРОНИЗАЦИЯ И ОБЛАКО
              ========================================================= */}
           {tab === 'CLOUD' && (
             <div className="p-3 space-y-3">
-              {/* Мгновенный обмен кодом-слепком через Telegram */}
+              <div className="bg-white rounded-2xl p-3.5 border border-slate-200 space-y-2">
+                <div className="text-xs font-bold text-slate-700">
+                  Ваш Telegram ID:{' '}
+                  <span className="font-mono text-indigo-600">
+                    {currentTelegramId || 'Открыто вне Telegram'}
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  Права доступа:{' '}
+                  {isUserAdmin ? (
+                    <b className="text-emerald-700">Полный доступ (Редактор графика)</b>
+                  ) : (
+                    <b className="text-slate-700">Только просмотр графика</b>
+                  )}
+                </div>
+              </div>
+
               <div className="bg-white rounded-2xl p-3.5 border border-slate-200 space-y-2.5">
                 <h2 className="text-sm font-extrabold text-slate-900">
-                  ⚡ Быстрый перенос базы между телефонами
+                  ⚡ Обновление базы по коду
                 </h2>
-                <p className="text-xs text-slate-500">
-                  Позволяет командирам отделений синхронизировать график и долги прямо через чат Telegram без настройки серверов:
-                </p>
-                <button
-                  onClick={exportSnapshotCode}
-                  className="w-full py-2.5 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-xs"
-                >
-                  📋 Скопировать код-слепок всей базы
-                </button>
+                {isUserAdmin && (
+                  <button
+                    onClick={exportSnapshotCode}
+                    className="w-full py-2.5 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-xs"
+                  >
+                    📋 Скопировать код базы (для отправки взводу)
+                  </button>
+                )}
                 <div className="flex gap-1.5 pt-1">
                   <input
                     type="text"
-                    placeholder="Вставьте полученный код базы сюда..."
+                    placeholder="Вставьте код базы для обновления графика..."
                     value={backupString}
                     onChange={(e) => setBackupString(e.target.value)}
                     className="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-xs"
@@ -1410,54 +1698,45 @@
                     onClick={importSnapshotCode}
                     className="px-3 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl"
                   >
-                    Загрузить
+                    Обновить
                   </button>
                 </div>
               </div>
 
-              {/* Облако Supabase для Telegram Mini App */}
               <div className="bg-white rounded-2xl p-3.5 border border-slate-200 space-y-2.5">
                 <h2 className="text-sm font-extrabold text-slate-900">
-                  ☁️ Облачная база Supabase (Realtime)
+                  ☁️ Облако Supabase
                 </h2>
-                <p className="text-xs text-slate-500">
-                  Единое облако для работы внутри Telegram Mini App:
-                </p>
                 <input
                   type="text"
-                  placeholder="Supabase Project URL (https://xxx.supabase.co)"
+                  placeholder="Supabase Project URL"
                   value={supaUrl}
                   onChange={(e) => setSupaUrl(e.target.value)}
                   className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs"
                 />
                 <input
                   type="password"
-                  placeholder="Supabase Anon Public Key"
+                  placeholder="Supabase Anon Key"
                   value={supaKey}
                   onChange={(e) => setSupaKey(e.target.value)}
                   className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs"
                 />
-                <input
-                  type="text"
-                  placeholder="Код подразделения (напр. battery_main)"
-                  value={roomCode}
-                  onChange={(e) => setRoomCode(e.target.value)}
-                  className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-bold"
-                />
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <button
-                    disabled={isSyncing}
-                    onClick={pushToSupabaseCloud}
-                    className="py-2 bg-slate-900 text-white text-xs font-bold rounded-xl"
-                  >
-                    ⬆️ Выгрузить в облако
-                  </button>
+                <div className="flex gap-2 pt-1">
+                  {isUserAdmin && (
+                    <button
+                      disabled={isSyncing}
+                      onClick={pushToSupabaseCloud}
+                      className="flex-1 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl"
+                    >
+                      ⬆️ Выгрузить в облако
+                    </button>
+                  )}
                   <button
                     disabled={isSyncing}
                     onClick={pullFromSupabaseCloud}
-                    className="py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold rounded-xl"
+                    className="flex-1 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold rounded-xl"
                   >
-                    ⬇️ Скачать из облака
+                    ⬇️ Скачать график
                   </button>
                 </div>
               </div>
@@ -1465,9 +1744,9 @@
           )}
 
           {/* =========================================================
-              МОДАЛКА 1: ВЫБОР ЗАСТУПАЮЩИХ В СУТОЧНЫЙ НАРЯД ПО БАТАРЕЕ
+              МОДАЛКИ РЕДАКТИРОВАНИЯ (ОТКРЫВАЮТСЯ ТОЛЬКО У 4 АДМИНОВ)
              ========================================================= */}
-          {batteryModalDate && (
+          {isUserAdmin && batteryModalDate && (
             <div className="fixed inset-0 z-40 bg-black/50 flex items-end justify-center">
               <div className="bg-white w-full max-w-md rounded-t-3xl p-4 space-y-3 max-h-[82vh] flex flex-col">
                 <div className="flex items-center justify-between border-b pb-2">
@@ -1486,9 +1765,6 @@
                     ✕
                   </button>
                 </div>
-                <p className="text-[11px] text-slate-500">
-                  Отмеченные бойцы автоматически освобождаются от работ по классу в этот день и на день сдачи наряда, а также получают +{batteryWeight} балла в учет нагрузки.
-                </p>
                 <div className="overflow-y-auto divide-y divide-slate-100 border rounded-xl">
                   {members.map((m) => {
                     const checked = isOnBatteryDuty(m.id, batteryModalDate);
@@ -1508,9 +1784,7 @@
                         </div>
                         <span
                           className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
-                            checked
-                              ? 'bg-amber-500 text-white'
-                              : 'bg-slate-100 text-slate-600'
+                            checked ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-600'
                           }`}
                         >
                           {checked ? '✓ В наряде' : 'Выбрать'}
@@ -1523,20 +1797,20 @@
             </div>
           )}
 
-          {/* =========================================================
-              МОДАЛКА 2: ЗАМЕНА / ПОДМЕНА В ДОЛГ / ШТРАФНОЙ НАРЯД
-             ========================================================= */}
-          {modalSlot && (
+          {isUserAdmin && modalSlot && (
             <div className="fixed inset-0 z-40 bg-black/50 flex items-end justify-center">
               <div className="bg-white w-full max-w-md rounded-t-3xl p-4 space-y-3 max-h-[85vh] flex flex-col">
                 <div className="flex items-center justify-between border-b pb-2">
-                  <div>
+                  <div className="flex-1 pr-2">
                     <div className="text-[11px] font-bold uppercase text-indigo-600">
-                      {formatRuDate(modalSlot.date)} • {modalSlot.slot.title}
+                      {formatRuDate(modalSlot.date)} ({modalSlot.date})
                     </div>
-                    <div className="text-xs text-slate-600">
-                      Сейчас стоит: <b>{getName(modalSlot.slot.memberId)}</b>
-                    </div>
+                    <input
+                      type="text"
+                      defaultValue={modalSlot.slot.title}
+                      onBlur={(e) => handleRenameSlot(modalSlot.date, modalSlot.slot, e.target.value)}
+                      className="text-sm font-extrabold text-slate-900 border-b border-dashed border-slate-300 focus:border-indigo-600 outline-none w-full"
+                    />
                   </div>
                   <button
                     onClick={() => setModalSlot(null)}
@@ -1546,15 +1820,21 @@
                   </button>
                 </div>
 
-                {/* Быстрый рандом */}
-                <button
-                  onClick={() => replaceWithRandomLeastLoaded(modalSlot.date, modalSlot.slot)}
-                  className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-xs"
-                >
-                  🎲 Заменить случайным (из менее загруженных)
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => replaceWithRandomLeastLoaded(modalSlot.date, modalSlot.slot)}
+                    className="flex-1 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-xs"
+                  >
+                    🎲 Случайный (менее загруженный)
+                  </button>
+                  <button
+                    onClick={() => handleDeleteSlotFromDay(modalSlot.date, modalSlot.slot)}
+                    className="px-3 py-2 bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold rounded-xl"
+                  >
+                    🗑 Убрать
+                  </button>
+                </div>
 
-                {/* 3 режима назначения: Очередь | Подмена в долг | Штрафной наряд */}
                 <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl">
                   <button
                     onClick={() => setAssignMode('REGULAR')}
@@ -1582,23 +1862,12 @@
                   </button>
                 </div>
 
-                <div className="text-[11px] text-slate-500">
-                  {assignMode === 'DEBT_COVER'
-                    ? `Боец, которого вы выберете ниже, выйдет ЗА ${getMember(modalSlot.slot.memberId)?.fullName || 'текущего'}, а в Книгу долгов запишется долг 1 смена.`
-                    : assignMode === 'PENALTY'
-                    ? 'Штрафная отработка: НЕ увеличивает зачетный балл очереди.'
-                    : 'Кандидаты отсортированы от наименее загруженных:'}
-                </div>
-
                 <div className="overflow-y-auto divide-y divide-slate-100 border rounded-xl">
                   {members
                     .filter((m) => m.status === 'ACTIVE')
                     .sort((a, b) => (statsMap[a.id]?.score || 0) - (statsMap[b.id]?.score || 0))
                     .map((m) => {
                       const st = statsMap[m.id];
-                      const inBat = isOnBatteryDuty(m.id, modalSlot.date);
-                      const afterBat = isRecoveringFromBatteryDuty(m.id, modalSlot.date);
-
                       return (
                         <div key={m.id} className="p-2.5 flex items-center justify-between">
                           <div>
@@ -1607,19 +1876,9 @@
                               <span className={`text-[10px] font-bold px-1.5 rounded ${SQUAD_BADGE[m.squad]}`}>
                                 {m.squad} отд.
                               </span>
-                              {inBat && (
-                                <span className="text-[9px] bg-amber-100 text-amber-800 px-1 rounded font-bold">
-                                  🛡️ Наряд
-                                </span>
-                              )}
-                              {afterBat && (
-                                <span className="text-[9px] bg-slate-200 text-slate-700 px-1 rounded font-bold">
-                                  💤 Сдача
-                                </span>
-                              )}
                             </div>
                             <div className="text-[10px] text-slate-500">
-                              Индекс: <b>{st.score.toFixed(1)}</b> • Класс: {st.regularShifts} • Батарея: {st.batteryCount}
+                              Индекс: <b>{st.score.toFixed(1)}</b> • Всего: {st.totalAll} • Батарея: {st.batteryCount}
                             </div>
                           </div>
                           <button
@@ -1642,8 +1901,7 @@
             </div>
           )}
 
-          {/* МОДАЛКА 3: ДОБАВЛЕНИЕ РАЗОВОЙ НАГРУЗКИ НА ДЕНЬ */}
-          {addSlotDate && (
+          {isUserAdmin && addSlotDate && (
             <div className="fixed inset-0 z-40 bg-black/50 flex items-end justify-center">
               <form
                 onSubmit={handleAddCustomSlotToDay}
@@ -1686,8 +1944,12 @@
             </div>
           )}
 
-          {/* НИЖНЕЕ МЕНЮ (5 ВКЛАДОК) */}
-          <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-slate-200 grid grid-cols-5 py-2 z-30">
+          {/* НИЖНЕЕ МЕНЮ (У ОБЫЧНЫХ БОЙЦОВ 4 ВКЛАДКИ, У АДМИНОВ 5 ВКЛАДОК) */}
+          <nav
+            className={`fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-slate-200 grid ${
+              isUserAdmin ? 'grid-cols-5' : 'grid-cols-4'
+            } py-2 z-30`}
+          >
             <button
               onClick={() => setTab('SCHEDULE')}
               className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
@@ -1698,32 +1960,34 @@
               <span>График</span>
             </button>
             <button
+              onClick={() => setTab('STATS')}
+              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
+                tab === 'STATS' ? 'text-indigo-600' : 'text-slate-400'
+              }`}
+            >
+              <span>📊</span>
+              <span>Таблица</span>
+            </button>
+            <button
               onClick={() => setTab('DEBTS')}
-              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold relative ${
+              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
                 tab === 'DEBTS' ? 'text-indigo-600' : 'text-slate-400'
               }`}
             >
               <span>🤝</span>
               <span>Долги ({totalActiveDebts})</span>
             </button>
-            <button
-              onClick={() => setTab('MEMBERS')}
-              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
-                tab === 'MEMBERS' ? 'text-indigo-600' : 'text-slate-400'
-              }`}
-            >
-              <span>👥</span>
-              <span>Баланс</span>
-            </button>
-            <button
-              onClick={() => setTab('TASKS')}
-              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
-                tab === 'TASKS' ? 'text-indigo-600' : 'text-slate-400'
-              }`}
-            >
-              <span>⚙️</span>
-              <span>Нагрузки</span>
-            </button>
+            {isUserAdmin && (
+              <button
+                onClick={() => setTab('TASKS')}
+                className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
+                  tab === 'TASKS' ? 'text-indigo-600' : 'text-slate-400'
+                }`}
+              >
+                <span>⚙️</span>
+                <span>Нагрузки</span>
+              </button>
+            )}
             <button
               onClick={() => setTab('CLOUD')}
               className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
@@ -1731,7 +1995,7 @@
               }`}
             >
               <span>☁️</span>
-              <span>TG Облако</span>
+              <span>Облако</span>
             </button>
           </nav>
         </div>
