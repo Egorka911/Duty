@@ -36,6 +36,7 @@
       } catch (e) {}
     };
 
+    // СПИСОК TELEGRAM ID АДМИНИСТРАТОРОВ (4 ЧЕЛОВЕКА)
     const ADMIN_TELEGRAM_IDS = [
       7032931171,
       8908389240,
@@ -60,6 +61,7 @@
       }
     };
 
+    // СПИСОК ВЗВОДА ПО ОТДЕЛЕНИЯМ (23 ЧЕЛОВЕКА)
     const INITIAL_MEMBERS = [
       { id: 'm01', fullName: 'Кузнецов', squad: 1, status: 'ACTIVE', baseScore: 0 },
       { id: 'm02', fullName: 'Гежа', squad: 1, status: 'ACTIVE', baseScore: 0 },
@@ -127,87 +129,47 @@
       return d.toLocaleDateString('ru-RU', { weekday: 'short', day: '2-digit', month: 'short' });
     };
 
+    // НАСТОЯЩИЕ КЛЮЧИ ПРОЕКТА SUPABASE (JWT ANON KEY)
+    const SUPA_URL = 'https://yasxjwbyhiryslkwfhof.supabase.co';
+    const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlhc3hqd2J5aGlyeXNsa3dmaG9mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxNjE5NjUsImV4cCI6MjEwNzczNzk2NX0.WB4ANU1rdyXsF43aRNuXZ1bchUfhdZ4BNahTu6vtnPE';
+    const ROOM_CODE = 'battery_main';
+
     function BatteryDutyApp() {
       const [tab, setTab] = useState('SCHEDULE');
       const [toast, setToast] = useState(null);
+      const [cloudStatus, setCloudStatus] = useState('Подключение к облаку...');
 
       const [members, setMembers] = useState(() => {
-        const s = localStorage.getItem('bat_v6_members');
+        const s = localStorage.getItem('bat_v7_members');
         return s ? JSON.parse(s) : INITIAL_MEMBERS;
       });
 
       const [taskTemplates, setTaskTemplates] = useState(() => {
-        const s = localStorage.getItem('bat_v6_templates');
+        const s = localStorage.getItem('bat_v7_templates');
         return s ? JSON.parse(s) : INITIAL_TEMPLATES;
       });
 
       const [schedules, setSchedules] = useState(() => {
-        const s = localStorage.getItem('bat_v6_schedules');
+        const s = localStorage.getItem('bat_v7_schedules');
         return s ? JSON.parse(s) : {};
       });
 
       const [debts, setDebts] = useState(() => {
-        const s = localStorage.getItem('bat_v6_debts');
+        const s = localStorage.getItem('bat_v7_debts');
         return s ? JSON.parse(s) : [];
       });
 
       const [batteryWeight, setBatteryWeight] = useState(() => {
-        const s = localStorage.getItem('bat_v6_bweight');
+        const s = localStorage.getItem('bat_v7_bweight');
         return s !== null ? Number(s) : 0.5;
       });
       const [protectRestDay, setProtectRestDay] = useState(true);
-      const [logs, setLogs] = useState([]);
-
-      // Автоматически зашитые ключи Supabase
-      const SUPA_URL = 'https://yasxjwbyhiryslkwfhof.supabase.co';
-      const SUPA_KEY = 'Sb_publishable_HNhcccfstcWDEPrjrfiW4Q_9kKutA_8'.replace('Sb_', '').trim(); // Обработка ключа
-      const roomCode = 'battery_main';
       const [isCloudLoaded, setIsCloudLoaded] = useState(false);
-
-      // 1. АВТОМАТИЧЕСКАЯ ЗАГРУЗКА ИЗ ОБЛАКА ПРИ ВХОДЕ У ВСЕХ
-      useEffect(() => {
-        fetch(`${SUPA_URL}/rest/v1/duty_sync?room_code=eq.${roomCode}&select=state_json`, {
-          headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` }
-        })
-          .then((r) => r.json())
-          .then((data) => {
-            if (data?.[0]?.state_json) {
-              const st = data[0].state_json;
-              if (st.members) setMembers(st.members);
-              if (st.taskTemplates) setTaskTemplates(st.taskTemplates);
-              if (st.schedules) setSchedules(st.schedules);
-              if (st.debts) setDebts(st.debts);
-            }
-            setIsCloudLoaded(true);
-          })
-          .catch(() => setIsCloudLoaded(true));
-      }, []);
-
-      // 2. АВТОМАТИЧЕСКОЕ СОХРАНЕНИЕ В ОБЛАКО ПРИ ИЗМЕНЕНИИ РЕДАКТОРОМ
-      useEffect(() => {
-        if (!isUserAdmin || !isCloudLoaded) return;
-        const timer = setTimeout(() => {
-          fetch(`${SUPA_URL}/rest/v1/duty_sync?on_conflict=room_code`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              apikey: SUPA_KEY,
-              Authorization: `Bearer ${SUPA_KEY}`,
-              Prefer: 'resolution=merge-duplicates',
-            },
-            body: JSON.stringify({
-              room_code: roomCode,
-              state_json: { members, taskTemplates, schedules, debts, batteryWeight },
-              updated_at: new Date().toISOString(),
-            }),
-          });
-        }, 800);
-        return () => clearTimeout(timer);
-      }, [members, taskTemplates, schedules, debts, batteryWeight, isCloudLoaded]);
 
       const [startDate, setStartDate] = useState(() => toISO(new Date()));
       const [daysCount, setDaysCount] = useState(7);
 
+      // Фильтры таблицы статистики
       const [statSquadFilter, setStatSquadFilter] = useState(0);
       const [statStatusFilter, setStatStatusFilter] = useState('ALL');
       const [statTaskFilter, setStatTaskFilter] = useState('ALL');
@@ -215,6 +177,7 @@
       const [statSearch, setStatSearch] = useState('');
       const [statSortBy, setStatSortBy] = useState('SCORE_DESC');
 
+      // Модалки
       const [modalSlot, setModalSlot] = useState(null);
       const [assignMode, setAssignMode] = useState('REGULAR');
       const [batteryModalDate, setBatteryModalDate] = useState(null);
@@ -229,15 +192,110 @@
       const [newTplCount, setNewTplCount] = useState(1);
       const [newTplWeight, setNewTplWeight] = useState(1.0);
 
+      // Сохранение в LocalStorage
+      useEffect(() => localStorage.setItem('bat_v7_members', JSON.stringify(members)), [members]);
+      useEffect(() => localStorage.setItem('bat_v7_templates', JSON.stringify(taskTemplates)), [taskTemplates]);
+      useEffect(() => localStorage.setItem('bat_v7_schedules', JSON.stringify(schedules)), [schedules]);
+      useEffect(() => localStorage.setItem('bat_v7_debts', JSON.stringify(debts)), [debts]);
+      useEffect(() => localStorage.setItem('bat_v7_bweight', String(batteryWeight)), [batteryWeight]);
+
       const showToast = (msg) => {
         setToast(msg);
         setTimeout(() => setToast(null), 2600);
       };
 
-      const addLog = (action, details, badge = 'INFO') => {
-        const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        setLogs((prev) => [{ id: Date.now() + Math.random(), time, action, details, badge }, ...prev.slice(0, 99)]);
+      // ФУНКЦИЯ ВЫГРУЗКИ В SUPABASE
+      const pushStateToCloud = async (customSchedules = schedules) => {
+        try {
+          setCloudStatus('⏳ Сохранение в облако...');
+          const res = await fetch(`${SUPA_URL}/rest/v1/duty_sync?on_conflict=room_code`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: SUPA_KEY,
+              Authorization: `Bearer ${SUPA_KEY}`,
+              Prefer: 'resolution=merge-duplicates',
+            },
+            body: JSON.stringify({
+              room_code: ROOM_CODE,
+              state_json: {
+                members,
+                taskTemplates,
+                schedules: customSchedules,
+                debts,
+                batteryWeight,
+              },
+              updated_at: new Date().toISOString(),
+            }),
+          });
+          if (!res.ok) {
+            const errText = await res.text();
+            setCloudStatus(`❌ Ошибка БД (${res.status}): проверьте таблицу duty_sync`);
+            console.error(errText);
+            return false;
+          }
+          setCloudStatus('✅ Синхронизировано с облаком Supabase');
+          return true;
+        } catch (e) {
+          setCloudStatus('❌ Нет связи с Supabase');
+          return false;
+        }
       };
+
+      // ФУНКЦИЯ ЗАГРУЗКИ ИЗ SUPABASE ПРИ СТАРТЕ
+      const pullStateFromCloud = async () => {
+        try {
+          setCloudStatus('⏳ Загрузка графика из облака...');
+          const res = await fetch(
+            `${SUPA_URL}/rest/v1/duty_sync?room_code=eq.${ROOM_CODE}&select=state_json,updated_at`,
+            {
+              headers: {
+                apikey: SUPA_KEY,
+                Authorization: `Bearer ${SUPA_KEY}`,
+              },
+            }
+          );
+          if (!res.ok) {
+            setCloudStatus(`❌ Ошибка чтения БД (${res.status})`);
+            setIsCloudLoaded(true);
+            return;
+          }
+          const data = await res.json();
+          if (data && data.length > 0 && data[0].state_json) {
+            const st = data[0].state_json;
+            if (st.members) setMembers(st.members);
+            if (st.taskTemplates) setTaskTemplates(st.taskTemplates);
+            if (st.schedules && Object.keys(st.schedules).length > 0) {
+              setSchedules(st.schedules);
+            }
+            if (st.debts) setDebts(st.debts);
+            if (st.batteryWeight !== undefined) setBatteryWeight(st.batteryWeight);
+            setCloudStatus('✅ Актуальный график загружен из облака');
+          } else {
+            // Если таблица в облаке ещё пустая — генерируем стартовый график!
+            setCloudStatus('⚠️ Облако пустое — создаем первичный график...');
+            generateSchedule(false, true);
+          }
+          setIsCloudLoaded(true);
+        } catch (e) {
+          setCloudStatus('❌ Ошибка сети при подключении к облаку');
+          setIsCloudLoaded(true);
+        }
+      };
+
+      useEffect(() => {
+        pullStateFromCloud();
+      }, []);
+
+      // АВТОМАТИЧЕСКОЕ СОХРАНЕНИЕ В ОБЛАКО ПРИ ЛЮБОМ ИЗМЕНЕНИИ РЕДАКТОРОМ
+      useEffect(() => {
+        if (!isUserAdmin || !isCloudLoaded) return;
+        if (Object.keys(schedules).length === 0) return;
+        const timer = setTimeout(() => {
+          pushStateToCloud(schedules);
+        }, 600);
+        return () => clearTimeout(timer);
+      }, [members, taskTemplates, schedules, debts, batteryWeight, isCloudLoaded]);
 
       const getMember = (id) => members.find((m) => m.id === id);
       const getName = (id) => {
@@ -382,12 +440,22 @@
             if (statSortBy === 'NAME_ASC') return a.fullName.localeCompare(b.fullName, 'ru');
             if (statSortBy === 'SCORE_ASC') return a.score - b.score;
             if (statSortBy === 'TOTAL_DESC') return b.totalAll - a.totalAll;
+            if (statSortBy === 'TASK_DESC') {
+              const getVal = (item) => {
+                if (statTaskFilter === 'ALL') return item.totalAll;
+                if (statTaskFilter === 'BATTERY') return item.batteryCount;
+                if (statTaskFilter === 'PENALTY') return item.penaltyShifts;
+                return item.byTitle[statTaskFilter] || 0;
+              };
+              return getVal(b) - getVal(a);
+            }
             return b.score - a.score;
           });
-      }, [statsMap, statSquadFilter, statStatusFilter, statSearch, statSortBy]);
+      }, [statsMap, statSquadFilter, statStatusFilter, statSearch, statSortBy, statTaskFilter]);
 
-      const generateSchedule = (keepManual = true) => {
-        haptic('medium');
+      // ГЕНЕРАЦИЯ ГРАФИКА (Исправлено заполнение пустых дней!)
+      const generateSchedule = (keepManual = true, silent = false) => {
+        if (!silent) haptic('medium');
         const updated = { ...schedules };
         const tempScore = {};
         const tempRoleCount = {};
@@ -457,8 +525,9 @@
             }
           });
 
+          // ВАЖНО: Если день был пустой (slots.length === 0), создаем слоты по шаблону!
           let slots = templateSlots;
-          if (existing && keepManual && existing.slots) {
+          if (existing && keepManual && existing.slots && existing.slots.length > 0) {
             slots = existing.slots.map((s) => {
               if (s.memberId && batteryDutyIds.includes(s.memberId)) {
                 return { ...s, memberId: null, isManual: false, isPenalty: false, repaidForName: null };
@@ -539,7 +608,10 @@
         }
 
         setSchedules(updated);
-        showToast('График успешно распределен!');
+        if (isUserAdmin) {
+          pushStateToCloud(updated);
+        }
+        if (!silent) showToast('График заполнен и отправлен в облако!');
       };
 
       const clearAllDayWorkloads = (dateStr) => {
@@ -549,7 +621,7 @@
           ...prev,
           [dateStr]: { date: dateStr, batteryDutyIds: [], slots: [] },
         }));
-        showToast(`Нагрузки на ${formatRuDate(dateStr)} удалены`);
+        showToast(`Нагрузки на ${formatRuDate(dateStr)} очищены`);
       };
 
       const toggleBatteryDutyMember = (dateStr, memberId) => {
@@ -674,7 +746,7 @@
         }));
 
         setModalSlot(null);
-        showToast('Назначение обновлено');
+        showToast('Назначение сохранено');
       };
 
       const handleAddCustomSlotToDay = (e) => {
@@ -683,7 +755,7 @@
         const day = schedules[addSlotDate] || { date: addSlotDate, batteryDutyIds: [], slots: [] };
         const usedToday = new Set([
           ...(day.batteryDutyIds || []),
-          ...day.slots.map((s) => s.memberId).filter(Boolean),
+          ...(day.slots || []).map((s) => s.memberId).filter(Boolean),
         ]);
 
         const eligible = members
@@ -708,12 +780,12 @@
 
         setSchedules((prev) => ({
           ...prev,
-          [addSlotDate]: { ...day, slots: [...day.slots, newSlot] },
+          [addSlotDate]: { ...day, slots: [...(day.slots || []), newSlot] },
         }));
 
         setCustomSlotTitle('');
         setAddSlotDate(null);
-        showToast('Нагрузка добавлена');
+        showToast('Задача добавлена');
       };
 
       const handleDeleteSlotFromDay = (dateStr, slotObj, e) => {
@@ -723,7 +795,7 @@
           ...prev,
           [dateStr]: {
             ...prev[dateStr],
-            slots: prev[dateStr].slots.map((s) => s.id).filter((id) => id !== slotObj.id) ? prev[dateStr].slots.filter((s) => s.id !== slotObj.id) : [],
+            slots: (prev[dateStr]?.slots || []).filter((s) => s.id !== slotObj.id),
           },
         }));
         showToast('Задача удалена');
@@ -736,7 +808,9 @@
           ...prev,
           [dateStr]: {
             ...prev[dateStr],
-            slots: prev[dateStr].slots.map((s) => (s.id === slotObj.id ? { ...s, title: newTitle.trim() } : s)),
+            slots: (prev[dateStr]?.slots || []).map((s) =>
+              s.id === slotObj.id ? { ...s, title: newTitle.trim() } : s
+            ),
           },
         }));
       };
@@ -804,8 +878,8 @@
                     </button>
                   )}
                 </div>
-                <p className="text-[11px] text-indigo-200 mt-0.5">
-                  Строй: {members.filter((m) => m.status === 'ACTIVE').length}/23 • Долгов: {totalActiveDebts}
+                <p className="text-[10px] text-indigo-200 mt-0.5">
+                  {cloudStatus}
                 </p>
               </div>
               <button
@@ -893,7 +967,7 @@
                             <button
                               onClick={() => clearAllDayWorkloads(day.date)}
                               className="text-[10px] font-bold px-2 py-1 rounded-lg bg-rose-50 text-rose-600 border border-rose-200"
-                              title="Удалить все нагрузки"
+                              title="Удалить все нагрузки на сутки"
                             >
                               🗑 Очистить
                             </button>
@@ -924,7 +998,9 @@
                     )}
 
                     {(!day.slots || day.slots.length === 0) ? (
-                      <div className="text-center py-3 text-xs text-slate-400">На эти сутки нагрузок нет</div>
+                      <div className="text-center py-3 text-xs text-slate-400">
+                        На эти сутки нагрузок нет. {isUserAdmin && 'Нажмите «⚡ Заполнить (авто)» выше!'}
+                      </div>
                     ) : (
                       <div className="space-y-2">
                         {day.slots.map((slot) => {
@@ -959,7 +1035,7 @@
                                   )}
                                   {slot.repaidForName && (
                                     <span className="text-[9px] font-bold px-1.5 py-0.2 bg-emerald-200 text-emerald-900 rounded">
-                                      🤝 Долг
+                                      🤝 Долг за: {slot.repaidForName}
                                     </span>
                                   )}
                                 </div>
@@ -1004,21 +1080,21 @@
             </div>
           )}
 
-          {/* ВКЛАДКА 2: СТАТИСТИКА И ТАБЛИЦА */}
+          {/* ВКЛАДКА 2: ТАБЛИЦА СТАТИСТИКИ С ФИЛЬТРАЦИЕЙ */}
           {tab === 'STATS' && (
             <div className="p-3 space-y-3">
               <div className="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-extrabold text-slate-900">📊 Сводная таблица</h2>
+                  <h2 className="text-sm font-extrabold text-slate-900">📊 Сводная таблица нагрузок</h2>
                   <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">
-                    {filteredStatsList.length} бойцов
+                    Найдено: {filteredStatsList.length}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
                   <input
                     type="text"
-                    placeholder="🔍 Поиск..."
+                    placeholder="🔍 Поиск по фамилии..."
                     value={statSearch}
                     onChange={(e) => setStatSearch(e.target.value)}
                     className="px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs font-semibold outline-none"
@@ -1035,7 +1111,7 @@
 
                 <div className="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-xl">
                   {[
-                    { id: 0, label: 'Все' },
+                    { id: 0, label: 'Все (23)' },
                     { id: 1, label: '1 отд.' },
                     { id: 2, label: '2 отд.' },
                     { id: 3, label: '3 отд.' },
@@ -1050,6 +1126,41 @@
                       {sq.label}
                     </button>
                   ))}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-400">Фильтр по нагрузке</label>
+                    <select
+                      value={statTaskFilter}
+                      onChange={(e) => {
+                        setStatTaskFilter(e.target.value);
+                        if (e.target.value !== 'ALL') setStatSortBy('TASK_DESC');
+                      }}
+                      className="w-full mt-0.5 px-2 py-1.5 border border-slate-300 rounded-xl text-xs font-bold bg-white"
+                    >
+                      <option value="ALL">Все виды нагрузок</option>
+                      <option value="BATTERY">🛡️ Наряд по батарее</option>
+                      {allWorkloadTitles.map((title) => (
+                        <option key={title} value={title}>📌 {title}</option>
+                      ))}
+                      <option value="PENALTY">⚠ Штрафные наряды</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-400">Сортировка</label>
+                    <select
+                      value={statSortBy}
+                      onChange={(e) => setStatSortBy(e.target.value)}
+                      className="w-full mt-0.5 px-2 py-1.5 border border-slate-300 rounded-xl text-xs font-bold bg-white"
+                    >
+                      <option value="SCORE_DESC">Индекс (больше)</option>
+                      <option value="SCORE_ASC">Индекс (кто свободнее)</option>
+                      <option value="TOTAL_DESC">Всего смен</option>
+                      <option value="TASK_DESC">По выбранной нагрузке</option>
+                      <option value="NAME_ASC">По алфавиту (А–Я)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -1104,7 +1215,7 @@
                                 onChange={(e) => {
                                   const nextStatus = e.target.value;
                                   setMembers((prev) => prev.map((x) => (x.id === st.id ? { ...x, status: nextStatus } : x)));
-                                  showToast('Статус изменен');
+                                  showToast('Статус обновлен');
                                 }}
                                 className={`text-[10px] font-bold px-1.5 py-1 rounded-lg border outline-none ${STATUS_INFO[st.status].color}`}
                               >
@@ -1144,7 +1255,7 @@
                           <div className="text-xs font-bold text-slate-900">
                             <span className="text-rose-700">{getName(d.debtorId)}</span> → должен → <span className="text-emerald-700">{getName(d.creditorId)}</span>
                           </div>
-                          <div className="text-[11px] text-slate-500 mt-0.5">Смен: <b>{d.count}</b></div>
+                          <div className="text-[11px] text-slate-500 mt-0.5">Смен: <b>{d.count}</b> • {d.lastReason || 'Подмена'}</div>
                         </div>
                         {isUserAdmin && (
                           <button
@@ -1161,11 +1272,131 @@
                     ))}
                   </div>
                 )}
+
+                {isUserAdmin && (
+                  <div className="pt-3 border-t border-slate-100 space-y-2">
+                    <div className="text-xs font-bold text-slate-700">Записать долг вручную:</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <select
+                        value={manualDebtor}
+                        onChange={(e) => setManualDebtor(e.target.value)}
+                        className="px-2 py-1.5 border border-slate-300 rounded-xl text-xs font-bold bg-white"
+                      >
+                        {members.map((m) => (
+                          <option key={m.id} value={m.id}>{m.fullName} (должен)</option>
+                        ))}
+                      </select>
+                      <select
+                        value={manualCreditor}
+                        onChange={(e) => setManualCreditor(e.target.value)}
+                        className="px-2 py-1.5 border border-slate-300 rounded-xl text-xs font-bold bg-white"
+                      >
+                        {members.map((m) => (
+                          <option key={m.id} value={m.id}>{m.fullName} (кому)</option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (manualDebtor === manualCreditor) return showToast('Выберите разных людей');
+                        recordPeerDebt(manualDebtor, manualCreditor, 'Ручная запись');
+                        showToast('Долг добавлен');
+                      }}
+                      className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl"
+                    >
+                      + Зафиксировать долг
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* ВКЛАДКА 4: ОБЛАКО И СИНХРОНИЗАЦИЯ */}
+          {/* ВКЛАДКА 4: ШАБЛОНЫ НАГРУЗОК (ТОЛЬКО ДЛЯ АДМИНОВ) */}
+          {tab === 'TASKS' && isUserAdmin && (
+            <div className="p-3 space-y-3">
+              <div className="bg-amber-50/90 rounded-2xl p-3.5 border border-amber-200 space-y-2.5">
+                <h2 className="text-xs font-extrabold uppercase text-amber-900">🛡️ Настройки наряда по батарее</h2>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-amber-950">Бонус тяжести за сутки:</span>
+                  <select
+                    value={batteryWeight}
+                    onChange={(e) => setBatteryWeight(Number(e.target.value))}
+                    className="px-2.5 py-1 rounded-lg border border-amber-300 bg-white font-bold"
+                  >
+                    <option value={0}>0 баллов</option>
+                    <option value={0.5}>+0.5 балла</option>
+                    <option value={1.0}>+1.0 балл</option>
+                    <option value={1.5}>+1.5 балла</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-3.5 border border-slate-200 space-y-3">
+                <h2 className="text-sm font-extrabold text-slate-900">Ежедневные виды нагрузок</h2>
+                <div className="space-y-2">
+                  {taskTemplates.map((tpl) => (
+                    <div key={tpl.id} className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                      <div>
+                        <div className="text-xs font-bold text-slate-900">{tpl.title}</div>
+                        <div className="text-[11px] text-slate-500">Людей: <b>{tpl.count}</b> • Вес: <b>{tpl.weight}</b></div>
+                      </div>
+                      <button
+                        onClick={() => setTaskTemplates((p) => p.filter((x) => x.id !== tpl.id))}
+                        className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold"
+                      >
+                        Убрать
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!newTplTitle.trim()) return;
+                    setTaskTemplates((p) => [
+                      ...p,
+                      { id: `tpl_${Date.now()}`, title: newTplTitle.trim(), count: Number(newTplCount) || 1, weight: Number(newTplWeight) || 1.0 },
+                    ]);
+                    setNewTplTitle('');
+                    showToast('Шаблон добавлен');
+                  }}
+                  className="pt-2 border-t border-slate-100 space-y-2"
+                >
+                  <input
+                    type="text"
+                    placeholder="Название нагрузки..."
+                    value={newTplTitle}
+                    onChange={(e) => setNewTplTitle(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={newTplCount}
+                      onChange={(e) => setNewTplCount(e.target.value)}
+                      className="px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-bold"
+                    />
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={newTplWeight}
+                      onChange={(e) => setNewTplWeight(e.target.value)}
+                      className="px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-bold"
+                    />
+                  </div>
+                  <button type="submit" className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl">
+                    + Добавить в шаблон
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* ВКЛАДКА 5: ОБЛАКО */}
           {tab === 'CLOUD' && (
             <div className="p-3 space-y-3">
               <div className="bg-white rounded-2xl p-3.5 border border-slate-200 space-y-2">
@@ -1178,16 +1409,29 @@
               </div>
 
               <div className="bg-white rounded-2xl p-3.5 border border-slate-200 space-y-2.5">
-                <h2 className="text-sm font-extrabold text-slate-900">☁️ Статус облака Supabase</h2>
-                <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold">
-                  ✅ Единая база взвода подключена автоматически! Изменения редакторов синхронизируются у всех.
+                <h2 className="text-sm font-extrabold text-slate-900">☁️ Синхронизация Supabase</h2>
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800">
+                  {cloudStatus}
                 </div>
-                <button
-                  onClick={() => window.location.reload()}
-                  className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl"
-                >
-                  🔄 Принудительно обновить график из облака
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  {isUserAdmin && (
+                    <button
+                      onClick={ async () => {
+                        const ok = await pushStateToCloud(schedules);
+                        showToast(ok ? '☁️ Успешно сохранено в БД!' : '❌ Ошибка сохранения в БД');
+                      }}
+                      className="py-2.5 bg-slate-900 text-white text-xs font-bold rounded-xl"
+                    >
+                      ⬆️ Сохранить в БД
+                    </button>
+                  )}
+                  <button
+                    onClick={pullStateFromCloud}
+                    className="py-2.5 bg-indigo-600 text-white text-xs font-bold rounded-xl"
+                  >
+                    ⬇️ Скачать из БД
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1205,7 +1449,7 @@
                     const checked = isOnBatteryDuty(m.id, batteryModalDate);
                     return (
                       <div key={m.id} onClick={() => toggleBatteryDutyMember(batteryModalDate, m.id)} className={`p-2.5 flex items-center justify-between cursor-pointer ${checked ? 'bg-amber-50' : ''}`}>
-                        <span className="text-xs font-bold">{m.fullName}</span>
+                        <span className="text-xs font-bold">{m.fullName} ({m.squad} отд.)</span>
                         <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${checked ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-600'}`}>
                           {checked ? '✓ В наряде' : 'Выбрать'}
                         </span>
@@ -1230,7 +1474,7 @@
                   <button onClick={() => setModalSlot(null)} className="w-8 h-8 rounded-full bg-slate-100 font-bold">✕</button>
                 </div>
                 <button onClick={() => replaceWithRandomLeastLoaded(modalSlot.date, modalSlot.slot)} className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl">
-                  🎲 Случайный боец
+                  🎲 Случайный (из менее загруженных)
                 </button>
                 <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl">
                   <button onClick={() => setAssignMode('REGULAR')} className={`py-1.5 rounded-lg text-[11px] font-bold ${assignMode === 'REGULAR' ? 'bg-white text-indigo-600' : 'text-slate-600'}`}>Очередь</button>
@@ -1238,14 +1482,20 @@
                   <button onClick={() => setAssignMode('PENALTY')} className={`py-1.5 rounded-lg text-[11px] font-bold ${assignMode === 'PENALTY' ? 'bg-rose-600 text-white' : 'text-slate-600'}`}>Штраф</button>
                 </div>
                 <div className="overflow-y-auto divide-y divide-slate-100 border rounded-xl">
-                  {members.filter((m) => m.status === 'ACTIVE').map((m) => (
-                    <div key={m.id} className="p-2.5 flex items-center justify-between">
-                      <span className="text-xs font-bold">{m.fullName}</span>
-                      <button onClick={() => handleAssignMember(m.id)} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-xl">
-                        Назначить
-                      </button>
-                    </div>
-                  ))}
+                  {members
+                    .filter((m) => m.status === 'ACTIVE')
+                    .sort((a, b) => (statsMap[a.id]?.score || 0) - (statsMap[b.id]?.score || 0))
+                    .map((m) => (
+                      <div key={m.id} className="p-2.5 flex items-center justify-between">
+                        <div>
+                          <div className="text-xs font-bold">{m.fullName} ({m.squad} отд.)</div>
+                          <div className="text-[10px] text-slate-500">Индекс: {(statsMap[m.id]?.score || 0).toFixed(1)}</div>
+                        </div>
+                        <button onClick={() => handleAssignMember(m.id)} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-xl">
+                          Назначить
+                        </button>
+                      </div>
+                    ))}
                 </div>
               </div>
             </div>
@@ -1273,7 +1523,7 @@
             </div>
           )}
 
-          <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-slate-200 grid grid-cols-4 py-2 z-30">
+          <nav className={`fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-slate-200 grid ${isUserAdmin ? 'grid-cols-5' : 'grid-cols-4'} py-2 z-30`}>
             <button onClick={() => setTab('SCHEDULE')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'SCHEDULE' ? 'text-indigo-600' : 'text-slate-400'}`}>
               <span>📅</span><span>График</span>
             </button>
@@ -1283,6 +1533,11 @@
             <button onClick={() => setTab('DEBTS')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'DEBTS' ? 'text-indigo-600' : 'text-slate-400'}`}>
               <span>🤝</span><span>Долги ({totalActiveDebts})</span>
             </button>
+            {isUserAdmin && (
+              <button onClick={() => setTab('TASKS')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'TASKS' ? 'text-indigo-600' : 'text-slate-400'}`}>
+                <span>⚙️</span><span>Нагрузки</span>
+              </button>
+            )}
             <button onClick={() => setTab('CLOUD')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'CLOUD' ? 'text-indigo-600' : 'text-slate-400'}`}>
               <span>☁️</span><span>Облако</span>
             </button>
