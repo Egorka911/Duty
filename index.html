@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Дежурство-Контроль PRO v8 • Взвод</title>
+  <title>Дежурство-Контроль PRO v9 • Календарь Взвода</title>
   <!-- Telegram Mini App SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Supabase JS Client (для Realtime подписок) -->
@@ -136,7 +136,7 @@
       return d.toLocaleDateString('ru-RU', { weekday: 'short', day: '2-digit', month: 'short' });
     };
 
-    // Компонент подсветки совпадений при поиске
+    // Подсветка текста при поиске
     function HighlightText({ text, query }) {
       if (!query || !query.trim()) return <span>{text}</span>;
       const q = query.trim();
@@ -166,72 +166,76 @@
       : null;
 
     function BatteryDutyApp() {
+      const todayISO = useMemo(() => toISO(new Date()), []);
+
       const [tab, setTab] = useState('SCHEDULE'); // SCHEDULE | STATS | DEBTS | TASKS | CLOUD
-      const [viewMode, setViewMode] = useState('LIST'); // LIST | MONTH
       const [darkMode, setDarkMode] = useState(() => localStorage.getItem('bat_dark') === '1');
       const [toast, setToast] = useState(null);
       const [cloudStatus, setCloudStatus] = useState('⏳ Синхронизация...');
 
+      // Навигация по календарю (выбранный месяц и фильтр отображения дней)
+      const [calendarMonthISO, setCalendarMonthISO] = useState(() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      });
+      const [selectedDayISO, setSelectedDayISO] = useState(() => toISO(new Date()));
+      const [dayFilterMode, setDayFilterMode] = useState('ALL_MONTH'); // ALL_MONTH | SINGLE_DAY
+
       // Состояния данных
       const [members, setMembers] = useState(() => {
-        const s = localStorage.getItem('bat_v8_members');
+        const s = localStorage.getItem('bat_v9_members') || localStorage.getItem('bat_v8_members');
         return s ? JSON.parse(s) : INITIAL_MEMBERS;
       });
       const [taskTemplates, setTaskTemplates] = useState(() => {
-        const s = localStorage.getItem('bat_v8_templates');
+        const s = localStorage.getItem('bat_v9_templates') || localStorage.getItem('bat_v8_templates');
         return s ? JSON.parse(s) : INITIAL_TEMPLATES;
       });
       const [schedules, setSchedules] = useState(() => {
-        const s = localStorage.getItem('bat_v8_schedules');
+        const s = localStorage.getItem('bat_v9_schedules') || localStorage.getItem('bat_v8_schedules');
         return s ? JSON.parse(s) : {};
       });
       const [debts, setDebts] = useState(() => {
-        const s = localStorage.getItem('bat_v8_debts');
+        const s = localStorage.getItem('bat_v9_debts') || localStorage.getItem('bat_v8_debts');
         return s ? JSON.parse(s) : [];
       });
       const [batteryWeight, setBatteryWeight] = useState(() => {
-        const s = localStorage.getItem('bat_v8_bweight');
+        const s = localStorage.getItem('bat_v9_bweight') || localStorage.getItem('bat_v8_bweight');
         return s !== null ? Number(s) : 0.5;
       });
       const [protectRestDay, setProtectRestDay] = useState(true);
       const [logs, setLogs] = useState(() => {
-        const s = localStorage.getItem('bat_v8_logs');
+        const s = localStorage.getItem('bat_v9_logs') || localStorage.getItem('bat_v8_logs');
         return s ? JSON.parse(s) : [];
       });
       const [backups, setBackups] = useState(() => {
-        const s = localStorage.getItem('bat_v8_backups');
+        const s = localStorage.getItem('bat_v9_backups') || localStorage.getItem('bat_v8_backups');
         return s ? JSON.parse(s) : [];
       });
 
       const lastSyncTimestampRef = useRef(0);
 
-      // Диапазон отображения
-      const [startDate, setStartDate] = useState(() => toISO(new Date()));
-      const [daysCount, setDaysCount] = useState(7);
-      const [calendarMonthDate, setCalendarMonthDate] = useState(() => {
-        const now = new Date();
-        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-      });
-
       // Фильтры таблицы статистики
       const [statSquadFilter, setStatSquadFilter] = useState(0);
       const [statStatusFilter, setStatStatusFilter] = useState('ALL');
       const [statTaskFilter, setStatTaskFilter] = useState('ALL');
-      const [statDateScope, setStatDateScope] = useState('ALL'); // ALL | PERIOD | CUSTOM
-      const [statCustomFrom, setStatCustomFrom] = useState(() => toISO(new Date()));
-      const [statCustomTo, setStatCustomTo] = useState(() => addDaysISO(toISO(new Date()), 14));
+      const [statDateScope, setStatDateScope] = useState('ALL'); // ALL | MONTH | CUSTOM
+      const [statCustomFrom, setStatCustomFrom] = useState(() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      });
+      const [statCustomTo, setStatCustomTo] = useState(() => toISO(new Date()));
       const [statSearch, setStatSearch] = useState('');
       const [statSortBy, setStatSortBy] = useState('SCORE_DESC');
 
       // Модалки
-      const [confirmDialog, setConfirmDialog] = useState(null); // { title, message, confirmLabel, onConfirm }
+      const [confirmDialog, setConfirmDialog] = useState(null);
+      const [recalcModalOpen, setRecalcModalOpen] = useState(false);
       const [modalSlot, setModalSlot] = useState(null);
       const [assignMode, setAssignMode] = useState('REGULAR');
       const [batteryModalDate, setBatteryModalDate] = useState(null);
       const [addSlotDate, setAddSlotDate] = useState(null);
       const [customSlotTitle, setCustomSlotTitle] = useState('');
       const [customSlotWeight, setCustomSlotWeight] = useState(1.0);
-      const [calendarExportMemberId, setCalendarExportMemberId] = useState('ALL');
       const [testResults, setTestResults] = useState(null);
 
       const [manualDebtor, setManualDebtor] = useState('m01');
@@ -244,14 +248,14 @@
         localStorage.setItem('bat_dark', darkMode ? '1' : '0');
       }, [darkMode]);
 
-      // Локальный кэш
-      useEffect(() => localStorage.setItem('bat_v8_members', JSON.stringify(members)), [members]);
-      useEffect(() => localStorage.setItem('bat_v8_templates', JSON.stringify(taskTemplates)), [taskTemplates]);
-      useEffect(() => localStorage.setItem('bat_v8_schedules', JSON.stringify(schedules)), [schedules]);
-      useEffect(() => localStorage.setItem('bat_v8_debts', JSON.stringify(debts)), [debts]);
-      useEffect(() => localStorage.setItem('bat_v8_bweight', String(batteryWeight)), [batteryWeight]);
-      useEffect(() => localStorage.setItem('bat_v8_logs', JSON.stringify(logs)), [logs]);
-      useEffect(() => localStorage.setItem('bat_v8_backups', JSON.stringify(backups)), [backups]);
+      // Сохранение в LocalStorage
+      useEffect(() => localStorage.setItem('bat_v9_members', JSON.stringify(members)), [members]);
+      useEffect(() => localStorage.setItem('bat_v9_templates', JSON.stringify(taskTemplates)), [taskTemplates]);
+      useEffect(() => localStorage.setItem('bat_v9_schedules', JSON.stringify(schedules)), [schedules]);
+      useEffect(() => localStorage.setItem('bat_v9_debts', JSON.stringify(debts)), [debts]);
+      useEffect(() => localStorage.setItem('bat_v9_bweight', String(batteryWeight)), [batteryWeight]);
+      useEffect(() => localStorage.setItem('bat_v9_logs', JSON.stringify(logs)), [logs]);
+      useEffect(() => localStorage.setItem('bat_v9_backups', JSON.stringify(backups)), [backups]);
 
       const showToast = (msg) => {
         setToast(msg);
@@ -264,8 +268,62 @@
         return m ? `${m.fullName} (${m.squad} отд.)` : 'Не назначен';
       };
 
+      // Информация о выбранном месяце календаря (все даты месяца с 1 по 28/30/31)
+      const currentMonthInfo = useMemo(() => {
+        const [y, m] = calendarMonthISO.split('-').map(Number);
+        const firstDay = new Date(y, m - 1, 1);
+        const daysInMonth = new Date(y, m, 0).getDate();
+        const startOffset = (firstDay.getDay() + 6) % 7; // Пн = 0 .. Вс = 6
+
+        const datesList = [];
+        const cells = [];
+        for (let i = 0; i < startOffset; i++) cells.push(null);
+
+        for (let d = 1; d <= daysInMonth; d++) {
+          const iso = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          datesList.push(iso);
+          cells.push({ dayNum: d, iso });
+        }
+
+        const monthTitle = firstDay.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+        return {
+          year: y,
+          month: m,
+          firstDateISO: datesList[0],
+          lastDateISO: datesList[datesList.length - 1],
+          daysInMonth,
+          datesList,
+          cells,
+          monthTitle,
+        };
+      }, [calendarMonthISO]);
+
+      // Переключение месяцев (Прошлый / Будущий / Сегодня)
+      const changeMonth = (delta) => {
+        haptic('light');
+        const [y, m] = calendarMonthISO.split('-').map(Number);
+        const next = new Date(y, m - 1 + delta, 1);
+        const nextMonthISO = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-01`;
+        setCalendarMonthISO(nextMonthISO);
+        setDayFilterMode('ALL_MONTH');
+      };
+
+      const goToToday = () => {
+        haptic('light');
+        const now = new Date();
+        const thisMonthISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+        const tISO = toISO(now);
+        setCalendarMonthISO(thisMonthISO);
+        setSelectedDayISO(tISO);
+        setDayFilterMode('ALL_MONTH');
+        setTimeout(() => {
+          const el = document.getElementById(`day-card-${tISO}`);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      };
+
       // =========================================================
-      // МГНОВЕННАЯ ОБЛАЧНАЯ СИНХРОНИЗАЦИЯ + REALTIME ПОДПИСКА
+      // ОБЛАЧНАЯ СИНХРОНИЗАЦИЯ SUPABASE (REALTIME + ЗАЩИТА ИСТОРИИ)
       // =========================================================
       const applyRemoteState = (st, updatedAtStr) => {
         if (!st) return;
@@ -275,7 +333,10 @@
 
         if (st.members) setMembers(st.members);
         if (st.taskTemplates) setTaskTemplates(st.taskTemplates);
-        if (st.schedules) setSchedules(st.schedules);
+        // Объединяем расписание, чтобы ни один прошлый день никогда не потерялся
+        if (st.schedules) {
+          setSchedules((prev) => ({ ...prev, ...st.schedules }));
+        }
         if (st.debts) setDebts(st.debts);
         if (st.batteryWeight !== undefined) setBatteryWeight(st.batteryWeight);
         if (st.logs) setLogs(st.logs);
@@ -283,7 +344,6 @@
         setCloudStatus('🟢 Live-синхронизация активна');
       };
 
-      // Немедленная отправка любого изменения в Supabase (гарантирует синхронизацию замен!)
       const pushToCloudNow = async (overrides = {}) => {
         if (!isUserAdmin) return false;
         const nowIso = new Date().toISOString();
@@ -300,7 +360,7 @@
         };
 
         try {
-          setCloudStatus('⏳ Отправка изменений...');
+          setCloudStatus('⏳ Сохранение изменений...');
           const res = await fetch(`${SUPA_URL}/rest/v1/duty_sync?on_conflict=room_code`, {
             method: 'POST',
             headers: {
@@ -319,7 +379,7 @@
             setCloudStatus(`❌ Ошибка сохранения (${res.status})`);
             return false;
           }
-          setCloudStatus('🟢 Все замены синхронизированы');
+          setCloudStatus('🟢 Все изменения синхронизированы');
           return true;
         } catch (e) {
           setCloudStatus('❌ Ошибка сети');
@@ -344,15 +404,12 @@
           const data = await res.json();
           if (data?.[0]?.state_json) {
             applyRemoteState(data[0].state_json, data[0].updated_at);
-          } else if (Object.keys(schedules).length === 0) {
-            generateSchedule(false, true);
           }
         } catch (e) {
           if (!silent) setCloudStatus('⚠️ Автономный режим');
         }
       };
 
-      // Подписка на Realtime WebSocket + фоновая проверка каждые 5 сек
       useEffect(() => {
         pullFromCloudNow(false);
 
@@ -382,7 +439,6 @@
         };
       }, []);
 
-      // Создание точки бэкапа и записи в журнал аудита
       const createLogAndBackup = (actionTitle, detailsText, createSnapshot = false) => {
         const timeStr = new Date().toLocaleString('ru-RU', {
           day: '2-digit',
@@ -451,17 +507,6 @@
         return Boolean(schedMap[prevDate]?.batteryDutyIds?.includes(memberId));
       };
 
-      const periodDatesSet = useMemo(() => {
-        const set = new Set();
-        const base = new Date(startDate + 'T00:00:00');
-        for (let i = 0; i < daysCount; i++) {
-          const d = new Date(base);
-          d.setDate(base.getDate() + i);
-          set.add(toISO(d));
-        }
-        return set;
-      }, [startDate, daysCount]);
-
       const allWorkloadTitles = useMemo(() => {
         const titles = new Set(taskTemplates.map((t) => t.title));
         Object.values(schedules).forEach((day) => {
@@ -473,7 +518,7 @@
       }, [taskTemplates, schedules]);
 
       // =========================================================
-      // РАСЧЕТ СТАТИСТИКИ И ИНДИКАТОРА РАВНОМЕРНОСТИ (FAIRNESS INDEX)
+      // РАСЧЕТ СТАТИСТИКИ И ИНДИКАТОРА РАВНОМЕРНОСТИ
       // =========================================================
       const statsMap = useMemo(() => {
         const map = {};
@@ -492,8 +537,11 @@
         });
 
         Object.keys(schedules).sort().forEach((date) => {
-          if (statDateScope === 'PERIOD' && !periodDatesSet.has(date)) return;
-          if (statDateScope === 'CUSTOM' && (date < statCustomFrom || date > statCustomTo)) return;
+          if (statDateScope === 'MONTH') {
+            if (date < currentMonthInfo.firstDateISO || date > currentMonthInfo.lastDateISO) return;
+          } else if (statDateScope === 'CUSTOM') {
+            if (date < statCustomFrom || date > statCustomTo) return;
+          }
 
           const day = schedules[date];
           if (!day) return;
@@ -528,9 +576,8 @@
         });
 
         return map;
-      }, [members, schedules, batteryWeight, debts, statDateScope, periodDatesSet, statCustomFrom, statCustomTo]);
+      }, [members, schedules, batteryWeight, debts, statDateScope, currentMonthInfo, statCustomFrom, statCustomTo]);
 
-      // Индикатор равномерности распределения нагрузки по активным бойцам
       const fairnessMetrics = useMemo(() => {
         const activeList = Object.values(statsMap).filter((m) => m.status === 'ACTIVE');
         if (activeList.length === 0) return { index: 100, stdDev: 0, min: 0, max: 0, avg: 0 };
@@ -542,7 +589,6 @@
         const variance = scores.reduce((acc, s) => acc + Math.pow(s - avg, 2), 0) / scores.length;
         const stdDev = Math.sqrt(variance);
 
-        // 100% когда отклонение 0; снижается при росте дисбаланса
         const index = Math.max(0, Math.min(100, Math.round(100 - stdDev * 18)));
         return { index, stdDev, min, max, avg };
       }, [statsMap]);
@@ -575,17 +621,18 @@
       }, [statsMap, statSquadFilter, statStatusFilter, statSearch, statSortBy, statTaskFilter]);
 
       // =========================================================
-      // АЛГОРИТМ СПРАВЕДЛИВОЙ ГЕНЕРАЦИИ (С УЧЕТОМ РУЧНЫХ ЗАМЕН)
+      // АЛГОРИТМ СПРАВЕДЛИВОЙ ГЕНЕРАЦИИ (СОХРАНЯЕТ ПРОШЛЫЕ ДНИ!)
       // =========================================================
       const runScheduleGenerator = (
         baseSchedules,
-        keepManual,
+        keepExistingSlots,
         periodStart,
         periodDays,
         currentMembers,
         currentTemplates,
         currentDebts
       ) => {
+        // Клонируем ВСЮ историю расписания (никакие прошлые дни не удаляются!)
         const updated = JSON.parse(JSON.stringify(baseSchedules));
         const tempScore = {};
         const tempRoleCount = {};
@@ -607,7 +654,7 @@
           period.push(toISO(d));
         }
 
-        // 1. Учитываем все смены до начала периода
+        // 1. Учитываем всю историю смен до начала пересчитываемого периода
         Object.keys(updated).sort().forEach((dKey) => {
           if (dKey < period[0]) {
             const day = updated[dKey];
@@ -629,7 +676,7 @@
           }
         });
 
-        // 2. Посуточная балансировка (сначала учитываются ручные замены на день D, затем заполняются пустые)
+        // 2. Посуточная балансировка выбранного диапазона
         period.forEach((dateStr) => {
           const existing = updated[dateStr];
           const batteryDutyIds = existing?.batteryDutyIds || [];
@@ -658,17 +705,16 @@
           });
 
           let slots = templateSlots;
-          if (existing && keepManual && existing.slots && existing.slots.length > 0) {
+          // Если выбран режим "Заполнить пустые", сохраняем ВСЕ уже назначенные смены (и прошлые, и ручные)
+          if (existing && keepExistingSlots && existing.slots && existing.slots.length > 0) {
             slots = existing.slots.map((s) => {
               if (s.memberId && batteryDutyIds.includes(s.memberId)) {
                 return { ...s, memberId: null, isManual: false, isPenalty: false, repaidForName: null };
               }
-              return s.isManual ? { ...s } : { ...s, memberId: null, isPenalty: false, repaidForName: null };
+              return s.memberId ? { ...s } : { ...s, memberId: null, isPenalty: false, repaidForName: null };
             });
           }
 
-          // СНАЧАЛА начисляем баллы всем, кто стоит в ручной замене на этот день,
-          // чтобы алгоритм знал их новую нагрузку и не ставил их дважды
           const usedToday = new Set(batteryDutyIds);
           slots.forEach((slot) => {
             if (slot.memberId) {
@@ -682,7 +728,6 @@
             }
           });
 
-          // ТЕПЕРЬ заполняем свободные слоты самыми разгруженными бойцами
           slots.forEach((slot) => {
             if (slot.memberId) return;
 
@@ -745,19 +790,21 @@
         };
       };
 
-      const generateSchedule = (keepManual = true, silent = false) => {
-        if (!silent) haptic('medium');
+      // Заполнить пустые дни выбранного месяца (прошлые и уже заполненные дни сохраняются!)
+      const fillEmptyDaysInMonth = () => {
+        if (!isUserAdmin) return;
+        haptic('medium');
         const { nextLogs, nextBackups } = createLogAndBackup(
-          keepManual ? '⚡ Автозаполнение' : '🔄 Полный пересчет',
-          `Период с ${startDate} на ${daysCount} дн.`,
+          '⚡ Заполнение месяца',
+          `Заполнены пустые дни за ${currentMonthInfo.monthTitle}`,
           true
         );
 
         const { updatedSchedules, updatedDebts } = runScheduleGenerator(
           schedules,
-          keepManual,
-          startDate,
-          daysCount,
+          true, // сохраняем все уже стоящие назначения!
+          currentMonthInfo.firstDateISO,
+          currentMonthInfo.daysInMonth,
           members,
           taskTemplates,
           debts
@@ -765,29 +812,54 @@
 
         setSchedules(updatedSchedules);
         setDebts(updatedDebts);
-        if (isUserAdmin) {
-          pushToCloudNow({
-            schedules: updatedSchedules,
-            debts: updatedDebts,
-            logs: nextLogs,
-            backups: nextBackups,
-          });
-        }
-        if (!silent) showToast('График сбалансирован и сохранен в облако!');
+        pushToCloudNow({
+          schedules: updatedSchedules,
+          debts: updatedDebts,
+          logs: nextLogs,
+          backups: nextBackups,
+        });
+        showToast(`✅ Пустые дни (${currentMonthInfo.monthTitle}) заполнены!`);
       };
 
-      // Подтверждение перед полным пересчетом
-      const askConfirmRecalculate = () => {
+      // Пересчет с сохранением прошедших дней (или всего месяца)
+      const executeRecalculate = (onlyFromToday) => {
         if (!isUserAdmin) return;
-        setConfirmDialog({
-          title: '🔄 Подтвердите полный пересчет',
-          message: `Все ручные назначения и замены за выбранные ${daysCount} дней (с ${formatRuDate(startDate)}) будут пересчитаны заново по справедливой очереди. Авто-бэкап будет сохранен.`,
-          confirmLabel: 'Да, пересчитать',
-          onConfirm: () => {
-            setConfirmDialog(null);
-            generateSchedule(false, false);
-          },
+        haptic('medium');
+
+        let startISO = currentMonthInfo.firstDateISO;
+        let countDays = currentMonthInfo.daysInMonth;
+
+        if (onlyFromToday && todayISO >= currentMonthInfo.firstDateISO && todayISO <= currentMonthInfo.lastDateISO) {
+          startISO = todayISO;
+          countDays = daysDiff(currentMonthInfo.lastDateISO, todayISO) + 1;
+        }
+
+        const { nextLogs, nextBackups } = createLogAndBackup(
+          '🔄 Пересчет графика',
+          `Пересчитан период с ${startISO} (${countDays} дн.). Прошедшие дни сохранены.`,
+          true
+        );
+
+        const { updatedSchedules, updatedDebts } = runScheduleGenerator(
+          schedules,
+          false,
+          startISO,
+          countDays,
+          members,
+          taskTemplates,
+          debts
+        );
+
+        setSchedules(updatedSchedules);
+        setDebts(updatedDebts);
+        pushToCloudNow({
+          schedules: updatedSchedules,
+          debts: updatedDebts,
+          logs: nextLogs,
+          backups: nextBackups,
         });
+        setRecalcModalOpen(false);
+        showToast('🔄 График пересчитан (прошлые дни сохранены)!');
       };
 
       // Подтверждение перед очисткой суток
@@ -795,7 +867,7 @@
         if (!isUserAdmin) return;
         setConfirmDialog({
           title: `🗑 Очистить сутки ${formatRuDate(dateStr)}?`,
-          message: `Все задачи по классу и суточные наряды на ${dateStr} будут удалены. Вы сможете откатить это действие из бэкапа.`,
+          message: `Все задачи по классу и суточные наряды на ${dateStr} будут сняты. Остальные дни месяца не изменятся.`,
           confirmLabel: 'Да, очистить сутки',
           onConfirm: () => {
             haptic('medium');
@@ -816,7 +888,7 @@
         });
       };
 
-      // Ручная замена / Подмена в долг / Штрафной наряд (С МГНОВЕННОЙ СИНХРОНИЗАЦИЕЙ)
+      // Ручная замена / Подмена в долг / Штрафной наряд
       const handleAssignMember = (newMemberId) => {
         if (!isUserAdmin || !modalSlot) return;
         haptic('light');
@@ -891,7 +963,7 @@
         showToast(`✅ Замена синхронизирована: ${newName}`);
       };
 
-      // Случайный выбор из наименее загруженных (С МГНОВЕННОЙ СИНХРОНИЗАЦИЕЙ)
+      // Случайный выбор из наименее загруженных
       const replaceWithRandomLeastLoaded = (dateStr, slotObj, e) => {
         if (e) e.stopPropagation();
         if (!isUserAdmin) return;
@@ -1070,77 +1142,10 @@
         if (modalSlot) setModalSlot(null);
       };
 
-      // =========================================================
-      // ИНТЕГРАЦИЯ С GOOGLE КАЛЕНДАРЕМ (URL + ЭКСПОРТ .ICS)
-      // =========================================================
-      const openGoogleCalendarLink = (dateStr, titleText, memberName, e) => {
-        if (e) e.stopPropagation();
-        const cleanDate = dateStr.replace(/-/g, '');
-        const nextDate = addDaysISO(dateStr, 1).replace(/-/g, '');
-        const eventTitle = encodeURIComponent(`${titleText}: ${memberName}`);
-        const details = encodeURIComponent(`Назначение по взводу (${formatRuDate(dateStr)}). Система Дежурство-Контроль.`);
-        const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${eventTitle}&dates=${cleanDate}/${nextDate}&details=${details}`;
-        window.open(url, '_blank');
-      };
-
-      const downloadIcsCalendar = () => {
-        const events = [];
-        Object.keys(schedules).sort().forEach((dateStr) => {
-          const day = schedules[dateStr];
-          if (!day) return;
-          const dStart = dateStr.replace(/-/g, '');
-          const dEnd = addDaysISO(dateStr, 1).replace(/-/g, '');
-
-          (day.batteryDutyIds || []).forEach((mId) => {
-            if (calendarExportMemberId !== 'ALL' && calendarExportMemberId !== mId) return;
-            const m = getMember(mId);
-            if (!m) return;
-            events.push(
-              `BEGIN:VEVENT\nDTSTART;VALUE=DATE:${dStart}\nDTEND;VALUE=DATE:${dEnd}\nSUMMARY:🛡️ Наряд по батарее — ${m.fullName}\nDESCRIPTION:Суточный наряд по батарее (${m.squad} отд.)\nEND:VEVENT`
-            );
-          });
-
-          (day.slots || []).forEach((s) => {
-            if (!s.memberId) return;
-            if (calendarExportMemberId !== 'ALL' && calendarExportMemberId !== s.memberId) return;
-            const m = getMember(s.memberId);
-            if (!m) return;
-            events.push(
-              `BEGIN:VEVENT\nDTSTART;VALUE=DATE:${dStart}\nDTEND;VALUE=DATE:${dEnd}\nSUMMARY:${s.title} — ${m.fullName}\nDESCRIPTION:Нагрузка по взводу (${m.squad} отд.)\nEND:VEVENT`
-            );
-          });
-        });
-
-        if (events.length === 0) {
-          showToast('Нет смен для экспорта в календарь');
-          return;
-        }
-
-        const icsContent = [
-          'BEGIN:VCALENDAR',
-          'VERSION:2.0',
-          'PRODID:-//PlatoonDutyControl//RU',
-          ...events,
-          'END:VCALENDAR',
-        ].join('\n');
-
-        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.setAttribute('download', `duty_calendar_${startDate}.ics`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        showToast('📅 Файл .ICS скачан! Откройте его для Google Календаря');
-      };
-
-      // =========================================================
-      // ВСТРОЕННЫЙ ТЕСТ-РАННЕР ДЛЯ ПРОВЕРКИ СПРАВЕДЛИВОСТИ ПОСЛЕ ЗАМЕН
-      // =========================================================
+      // Встроенные тесты алгоритма
       const runBuiltInUnitTests = () => {
         const results = [];
         try {
-          // Тест 1: Равномерность на 14 дней для 23 человек
           const r1 = runScheduleGenerator({}, false, '2026-10-01', 14, INITIAL_MEMBERS, INITIAL_TEMPLATES, []);
           const counts1 = {};
           INITIAL_MEMBERS.forEach((m) => (counts1[m.id] = 0));
@@ -1157,8 +1162,6 @@
             detail: `Макс. разброс индекса: ${spread1.toFixed(1)} б. (норма ≤ 2.4)`,
           });
 
-          // Тест 2: Сохранение справедливости ПОСЛЕ ручной замены
-          // Назначаем m01 (Кузнецов) вручную 3 дня подряд и проверяем, что алгоритм компенсирует это и больше его не ставит
           const manualSeed = {
             '2026-10-01': {
               date: '2026-10-01',
@@ -1185,7 +1188,6 @@
             detail: `Доп. смен у перегруженного после ручных замен: ${m01AutoAssignedAfterManual} (ожидалось 0)`,
           });
 
-          // Тест 3: Защита суточного наряда по батарее (день D и день сдачи D+1)
           const batSeed = {
             '2026-10-05': { date: '2026-10-05', batteryDutyIds: ['m05'], slots: [] },
           };
@@ -1197,76 +1199,36 @@
             passed: !onDayD && !onDayD1,
             detail: `Назначен в день наряда: ${onDayD ? 'Да' : 'Нет'}, в день сдачи: ${onDayD1 ? 'Да' : 'Нет'}`,
           });
-
-          // Тест 4: Автопогашение P2P-долга при генерации
-          const debtsSeed = [{ id: 'd1', debtorId: 'm10', creditorId: 'm01', count: 1 }];
-          const r4 = runScheduleGenerator({}, false, '2026-10-01', 8, INITIAL_MEMBERS, INITIAL_TEMPLATES, debtsSeed);
-          results.push({
-            name: '4. Автопогашение P2P долга при генерации',
-            passed: r4.autoRepaidCount === 1 && r4.updatedDebts.length === 0,
-            detail: `Погашено автоматически долгов: ${r4.autoRepaidCount} из 1`,
-          });
         } catch (err) {
           results.push({ name: 'Ошибка выполнения тестов', passed: false, detail: String(err) });
         }
         setTestResults(results);
       };
 
-      // Сетка календаря на выбранный месяц
-      const monthCalendarGrid = useMemo(() => {
-        const [y, m] = calendarMonthDate.split('-').map(Number);
-        const firstDay = new Date(y, m - 1, 1);
-        const daysInMonth = new Date(y, m, 0).getDate();
-        // Пн = 0 ... Вс = 6
-        const startOffset = (firstDay.getDay() + 6) % 7;
-        const cells = [];
-        for (let i = 0; i < startOffset; i++) cells.push(null);
-        for (let d = 1; d <= daysInMonth; d++) {
-          const iso = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-          cells.push({ dayNum: d, iso, data: schedules[iso] });
-        }
-        return {
-          monthTitle: firstDay.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }),
-          cells,
-        };
-      }, [calendarMonthDate, schedules]);
-
-      const changeCalendarMonth = (delta) => {
-        const [y, m] = calendarMonthDate.split('-').map(Number);
-        const next = new Date(y, m - 1 + delta, 1);
-        setCalendarMonthDate(toISO(next));
-      };
-
+      // Все дни выбранного месяца (прошлые дни НИКОГДА не удаляются и видны с 1 по 31 число)
       const visibleDays = useMemo(() => {
-        const list = [];
-        const base = new Date(startDate + 'T00:00:00');
-        for (let i = 0; i < daysCount; i++) {
-          const d = new Date(base);
-          d.setDate(base.getDate() + i);
-          const iso = toISO(d);
-          list.push(schedules[iso] || { date: iso, batteryDutyIds: [], slots: [] });
-        }
-        return list;
-      }, [schedules, startDate, daysCount]);
+        const datesToShow =
+          dayFilterMode === 'SINGLE_DAY' ? [selectedDayISO] : currentMonthInfo.datesList;
+        return datesToShow.map(
+          (iso) => schedules[iso] || { date: iso, batteryDutyIds: [], slots: [] }
+        );
+      }, [schedules, currentMonthInfo, dayFilterMode, selectedDayISO]);
 
       const totalActiveDebts = debts.reduce((acc, d) => acc + d.count, 0);
 
       const shareToTelegramChat = () => {
-        const lines = [`📋 *ГРАФИК НАРЯДОВ И ДЕЖУРСТВ*`, ''];
+        const lines = [`📋 *ГРАФИК НАРЯДОВ (${currentMonthInfo.monthTitle.toUpperCase()})*`, ''];
         visibleDays.forEach((d) => {
+          if ((!d.slots || d.slots.length === 0) && (!d.batteryDutyIds || d.batteryDutyIds.length === 0)) return;
           lines.push(`📅 *${formatRuDate(d.date).toUpperCase()}* (${d.date})`);
           if (d.batteryDutyIds?.length > 0) {
             const bNames = d.batteryDutyIds.map((id) => getMember(id)?.fullName).join(', ');
             lines.push(`🛡️ *Наряд по батарее:* ${bNames}`);
           }
-          if (!d.slots || d.slots.length === 0) {
-            lines.push(`— Нагрузок нет`);
-          } else {
-            d.slots.forEach((s) => {
-              const extra = s.isPenalty ? ' [ШТРАФ]' : s.repaidForName ? ` [🤝 ${s.repaidForName}]` : '';
-              lines.push(`• ${s.title}: *${getName(s.memberId)}*${extra}`);
-            });
-          }
+          (d.slots || []).forEach((s) => {
+            const extra = s.isPenalty ? ' [ШТРАФ]' : s.repaidForName ? ` [🤝 ${s.repaidForName}]` : '';
+            lines.push(`• ${s.title}: *${getName(s.memberId)}*${extra}`);
+          });
           lines.push('');
         });
         navigator.clipboard.writeText(lines.join('\n'));
@@ -1344,90 +1306,143 @@
             </header>
 
             {/* =========================================================
-                ВКЛАДКА 1: ГРАФИК (СПИСОК ДНЕЙ + КАЛЕНДАРЬ МЕСЯЦА)
+                ВКЛАДКА 1: ПОЛНОЦЕННЫЙ КАЛЕНДАРЬ (ПРОШЛЫЕ, ТЕКУЩИЙ И БУДУЩИЕ МЕСЯЦЫ)
                ========================================================= */}
             {tab === 'SCHEDULE' && (
               <div className="p-3 space-y-3">
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-3 shadow-xs border border-slate-200 dark:border-slate-800 space-y-2.5">
-                  {/* Переключатель: Список дней / Календарь месяца */}
-                  <div className="grid grid-cols-2 gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                {/* ВЕРХНЯЯ ПАНЕЛЬ КАЛЕНДАРЯ С ПЕРЕКЛЮЧЕНИЕМ МЕСЯЦЕВ */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-3 shadow-xs border border-slate-200 dark:border-slate-800 space-y-3">
+                  {/* Переключатель месяцев: Прошлый / Текущий / Будущий */}
+                  <div className="flex items-center justify-between gap-1">
                     <button
-                      onClick={() => setViewMode('LIST')}
-                      className={`py-1.5 rounded-lg text-xs font-bold transition ${
-                        viewMode === 'LIST'
-                          ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs'
-                          : 'text-slate-500'
-                      }`}
+                      onClick={() => changeMonth(-1)}
+                      className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 active:bg-slate-200 text-xs font-extrabold"
                     >
-                      📋 Список дней
+                      ◀ Прошлый
                     </button>
+
+                    <div className="text-center">
+                      <div className="text-sm font-extrabold uppercase tracking-wide capitalize text-indigo-700 dark:text-indigo-400">
+                        {currentMonthInfo.monthTitle}
+                      </div>
+                      <button
+                        onClick={goToToday}
+                        className="text-[10px] font-bold text-slate-500 underline mt-0.5"
+                      >
+                        Перейти к Сегодня ({formatRuDate(todayISO)})
+                      </button>
+                    </div>
+
                     <button
-                      onClick={() => setViewMode('MONTH')}
-                      className={`py-1.5 rounded-lg text-xs font-bold transition ${
-                        viewMode === 'MONTH'
-                          ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs'
-                          : 'text-slate-500'
-                      }`}
+                      onClick={() => changeMonth(1)}
+                      className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 active:bg-slate-200 text-xs font-extrabold"
                     >
-                      🗓 Обзор месяца
+                      Следующий ▶
                     </button>
                   </div>
 
-                  {viewMode === 'LIST' ? (
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-[10px] font-bold uppercase text-slate-400">Дата старта</label>
-                        <input
-                          type="date"
-                          value={startDate}
-                          onChange={(e) => setStartDate(e.target.value)}
-                          className="w-full mt-0.5 px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs font-bold"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold uppercase text-slate-400">Период</label>
-                        <select
-                          value={daysCount}
-                          onChange={(e) => setDaysCount(Number(e.target.value))}
-                          className="w-full mt-0.5 px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs font-bold bg-white"
-                        >
-                          <option value={7}>7 дней (Неделя)</option>
-                          <option value={14}>14 дней</option>
-                          <option value={30}>30 дней (Месяц)</option>
-                        </select>
-                      </div>
+                  {/* СЕТКА КАЛЕНДАРЯ ВЫБРАННОГО МЕСЯЦА (Пн–Вс) */}
+                  <div>
+                    <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-extrabold uppercase text-slate-400 mb-1">
+                      <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
                     </div>
-                  ) : (
-                    /* Навигация по месяцам */
-                    <div className="flex items-center justify-between pt-1">
-                      <button
-                        onClick={() => changeCalendarMonth(-1)}
-                        className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold"
-                      >
-                        ◀ Пред.
-                      </button>
-                      <span className="text-xs font-extrabold uppercase tracking-wide capitalize">
-                        {monthCalendarGrid.monthTitle}
-                      </span>
-                      <button
-                        onClick={() => changeCalendarMonth(1)}
-                        className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold"
-                      >
-                        След. ▶
-                      </button>
-                    </div>
-                  )}
+                    <div className="grid grid-cols-7 gap-1">
+                      {currentMonthInfo.cells.map((cell, idx) => {
+                        if (!cell) {
+                          return <div key={idx} className="h-12 rounded-xl bg-slate-50/50 dark:bg-slate-900/30" />;
+                        }
+                        const dayData = schedules[cell.iso];
+                        const slotsCount = dayData?.slots?.filter((s) => s.memberId).length || 0;
+                        const hasBat = (dayData?.batteryDutyIds?.length || 0) > 0;
+                        const isToday = cell.iso === todayISO;
+                        const isSelected = cell.iso === selectedDayISO && dayFilterMode === 'SINGLE_DAY';
+                        const isPast = cell.iso < todayISO;
 
+                        return (
+                          <button
+                            key={cell.iso}
+                            onClick={() => {
+                              setSelectedDayISO(cell.iso);
+                              const el = document.getElementById(`day-card-${cell.iso}`);
+                              if (el) {
+                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              } else {
+                                setDayFilterMode('SINGLE_DAY');
+                              }
+                            }}
+                            className={`h-12 rounded-xl border p-1 flex flex-col items-center justify-between transition relative ${
+                              isSelected
+                                ? 'border-2 border-indigo-600 bg-indigo-50 dark:bg-indigo-950'
+                                : isToday
+                                ? 'border-2 border-amber-500 bg-amber-50/60 dark:bg-amber-950/50'
+                                : slotsCount > 0 || hasBat
+                                ? isPast
+                                  ? 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 opacity-85'
+                                  : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80'
+                                : 'border-dashed border-slate-200 dark:border-slate-800 opacity-55'
+                            }`}
+                          >
+                            <div className="flex items-center gap-0.5">
+                              <span className={`text-xs font-extrabold ${isToday ? 'text-amber-700 dark:text-amber-300' : ''}`}>
+                                {cell.dayNum}
+                              </span>
+                              {hasBat && <span className="text-[9px]">🛡️</span>}
+                            </div>
+
+                            {slotsCount > 0 ? (
+                              <span
+                                className={`text-[9px] font-bold px-1 rounded ${
+                                  isPast
+                                    ? 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                                    : 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300'
+                                }`}
+                              >
+                                {slotsCount} см.
+                              </span>
+                            ) : (
+                              <span className="text-[9px] text-slate-300 dark:text-slate-600">—</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Переключатель показа: Весь месяц (1–31) или Только выбранный день */}
+                  <div className="grid grid-cols-2 gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                    <button
+                      onClick={() => setDayFilterMode('ALL_MONTH')}
+                      className={`py-1.5 rounded-lg text-xs font-bold transition ${
+                        dayFilterMode === 'ALL_MONTH'
+                          ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs'
+                          : 'text-slate-500'
+                      }`}
+                    >
+                      📋 Весь месяц (1–{currentMonthInfo.daysInMonth})
+                    </button>
+                    <button
+                      onClick={() => setDayFilterMode('SINGLE_DAY')}
+                      className={`py-1.5 rounded-lg text-xs font-bold transition ${
+                        dayFilterMode === 'SINGLE_DAY'
+                          ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs'
+                          : 'text-slate-500'
+                      }`}
+                    >
+                      🔍 Выбранный день ({formatRuDate(selectedDayISO)})
+                    </button>
+                  </div>
+
+                  {/* Кнопки заполнения и пересчета (только для 4 редакторов) */}
                   {isUserAdmin && (
                     <div className="flex items-center justify-between gap-2 pt-1">
                       <button
-                        onClick={() => generateSchedule(true, false)}
+                        onClick={fillEmptyDaysInMonth}
                         className="flex-1 py-2 bg-indigo-600 active:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs"
                       >
-                        ⚡ Заполнить пустые
+                        ⚡ Заполнить пустые дни месяца
                       </button>
                       <button
-                        onClick={askConfirmRecalculate}
+                        onClick={() => setRecalcModalOpen(true)}
                         className="px-3 py-2 bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-bold rounded-xl"
                       >
                         🔄 Пересчет
@@ -1436,89 +1451,39 @@
                   )}
                 </div>
 
-                {/* КАЛЕНДАРЬ-ОБЗОР МЕСЯЦА */}
-                {viewMode === 'MONTH' && (
-                  <div className="bg-white dark:bg-slate-900 rounded-2xl p-3 border border-slate-200 dark:border-slate-800 shadow-xs">
-                    <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-extrabold uppercase text-slate-400 mb-1.5">
-                      <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
-                    </div>
-                    <div className="grid grid-cols-7 gap-1">
-                      {monthCalendarGrid.cells.map((cell, idx) => {
-                        if (!cell) return <div key={idx} className="h-14 rounded-xl bg-slate-50/40 dark:bg-slate-900/30" />;
-                        const slotsCount = cell.data?.slots?.filter((s) => s.memberId).length || 0;
-                        const hasBat = (cell.data?.batteryDutyIds?.length || 0) > 0;
-                        const isSelected = cell.iso === startDate;
-
-                        return (
-                          <button
-                            key={cell.iso}
-                            onClick={() => {
-                              setStartDate(cell.iso);
-                              setViewMode('LIST');
-                            }}
-                            className={`h-14 rounded-xl border p-1 flex flex-col items-center justify-between transition ${
-                              isSelected
-                                ? 'border-indigo-600 bg-indigo-50/80 dark:bg-indigo-950/80'
-                                : slotsCount > 0
-                                ? 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/70'
-                                : 'border-dashed border-slate-200 dark:border-slate-800 opacity-60'
-                            }`}
-                          >
-                            <span className="text-xs font-extrabold">{cell.dayNum}</span>
-                            <div className="flex items-center gap-0.5 flex-wrap justify-center">
-                              {hasBat && <span className="text-[9px]">🛡️</span>}
-                              {slotsCount > 0 && (
-                                <span className="text-[9px] font-bold px-1 rounded bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300">
-                                  {slotsCount} см.
-                                </span>
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <p className="text-[11px] text-slate-400 text-center mt-2">
-                      Нажмите на любой день месяца, чтобы открыть его смены
-                    </p>
-                  </div>
-                )}
-
-                {/* Блок быстрого экспорта в Google / iOS Календарь */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-3 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
-                  <select
-                    value={calendarExportMemberId}
-                    onChange={(e) => setCalendarExportMemberId(e.target.value)}
-                    className="flex-1 px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs font-bold bg-white"
-                  >
-                    <option value="ALL">📅 Все смены взвода (.ICS)</option>
-                    {members.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        📅 Только: {m.fullName} ({m.squad} отд.)
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={downloadIcsCalendar}
-                    className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-xl shrink-0"
-                  >
-                    📥 В Google Календарь
-                  </button>
-                </div>
-
-                {/* СПИСОК КАРТОЧЕК ДНЕЙ */}
+                {/* СПИСОК ВСЕХ ДНЕЙ МЕСЯЦА (И ПРОШЛЫЕ, И СЕГОДНЯ, И БУДУЩИЕ) */}
                 {visibleDays.map((day) => {
                   const batteryIds = day.batteryDutyIds || [];
                   const prevDayBatteryIds = schedules[addDaysISO(day.date, -1)]?.batteryDutyIds || [];
+                  const isToday = day.date === todayISO;
+                  const isPast = day.date < todayISO;
 
                   return (
                     <div
+                      id={`day-card-${day.date}`}
                       key={day.date}
-                      className="rounded-2xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 p-3.5 shadow-xs space-y-2.5"
+                      className={`rounded-2xl border p-3.5 shadow-xs space-y-2.5 transition ${
+                        isToday
+                          ? 'bg-white dark:bg-slate-900 border-2 border-amber-500'
+                          : isPast
+                          ? 'bg-slate-50/90 dark:bg-slate-900/70 border-slate-200 dark:border-slate-800'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+                      }`}
                     >
                       <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800 flex-wrap gap-1.5">
-                        <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-sm font-extrabold capitalize">{formatRuDate(day.date)}</span>
-                          <span className="ml-1.5 text-xs font-mono text-slate-400">{day.date}</span>
+                          <span className="text-xs font-mono text-slate-400">{day.date}</span>
+                          {isToday && (
+                            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-400 text-slate-950">
+                              СЕГОДНЯ
+                            </span>
+                          )}
+                          {isPast && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                              Архив
+                            </span>
+                          )}
                         </div>
 
                         {isUserAdmin && (
@@ -1622,35 +1587,24 @@
                                   </div>
                                 </div>
 
-                                <div className="flex items-center gap-1 shrink-0">
-                                  {m && (
+                                {isUserAdmin && (
+                                  <div className="flex items-center gap-1 shrink-0">
                                     <button
-                                      onClick={(e) => openGoogleCalendarLink(day.date, slot.title, m.fullName, e)}
-                                      className="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-[10px] font-bold"
-                                      title="Добавить в Google Календарь"
+                                      onClick={(e) => replaceWithRandomLeastLoaded(day.date, slot, e)}
+                                      className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs font-bold shadow-2xs"
+                                      title="Случайный из менее загруженных"
                                     >
-                                      📅
+                                      🎲
                                     </button>
-                                  )}
-                                  {isUserAdmin && (
-                                    <>
-                                      <button
-                                        onClick={(e) => replaceWithRandomLeastLoaded(day.date, slot, e)}
-                                        className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs font-bold shadow-2xs"
-                                        title="Случайный из менее загруженных"
-                                      >
-                                        🎲
-                                      </button>
-                                      <button
-                                        onClick={(e) => handleDeleteSlotFromDay(day.date, slot, e)}
-                                        className="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-rose-500 text-xs font-bold"
-                                        title="Удалить задачу"
-                                      >
-                                        🗑
-                                      </button>
-                                    </>
-                                  )}
-                                </div>
+                                    <button
+                                      onClick={(e) => handleDeleteSlotFromDay(day.date, slot, e)}
+                                      className="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-rose-500 text-xs font-bold"
+                                      title="Удалить задачу"
+                                    >
+                                      🗑
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
@@ -1663,7 +1617,7 @@
             )}
 
             {/* =========================================================
-                ВКЛАДКА 2: ТАБЛИЦА СТАТИСТИКИ (ПОДСВЕТКА ПОИСКА + ФИЛЬТР ПО ДАТЕ)
+                ВКЛАДКА 2: ТАБЛИЦА СТАТИСТИКИ
                ========================================================= */}
             {tab === 'STATS' && (
               <div className="p-3 space-y-3">
@@ -1675,7 +1629,6 @@
                     </span>
                   </div>
 
-                  {/* Поиск с подсветкой + выбор периода дат */}
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       type="text"
@@ -1690,12 +1643,11 @@
                       className="px-2 py-1.5 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs font-bold bg-white"
                     >
                       <option value="ALL">📅 За всё время</option>
-                      <option value="PERIOD">📅 Текущий экран ({daysCount} дн.)</option>
+                      <option value="MONTH">📅 За {currentMonthInfo.monthTitle}</option>
                       <option value="CUSTOM">📅 Свой фильтр дат (От–До)</option>
                     </select>
                   </div>
 
-                  {/* Произвольный фильтр по дате От — До */}
                   {statDateScope === 'CUSTOM' && (
                     <div className="grid grid-cols-2 gap-2 p-2 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900">
                       <div>
@@ -1719,7 +1671,6 @@
                     </div>
                   )}
 
-                  {/* Фильтр по отделению */}
                   <div className="grid grid-cols-4 gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
                     {[
                       { id: 0, label: 'Все (23)' },
@@ -1741,7 +1692,6 @@
                     ))}
                   </div>
 
-                  {/* Фильтр по виду нагрузки и сортировке */}
                   <div className="grid grid-cols-2 gap-2">
                     <select
                       value={statTaskFilter}
@@ -2006,7 +1956,6 @@
                ========================================================= */}
             {tab === 'CLOUD' && (
               <div className="p-3 space-y-3">
-                {/* Статус облака */}
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <h2 className="text-sm font-extrabold">☁️ Realtime Синхронизация</h2>
@@ -2033,7 +1982,6 @@
                   </div>
                 </div>
 
-                {/* Автоматические бэкапы (Точки отката) */}
                 {isUserAdmin && (
                   <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 space-y-2.5">
                     <h2 className="text-sm font-extrabold">⏪ Авто-бэкапы графика ({backups.length})</h2>
@@ -2060,7 +2008,6 @@
                   </div>
                 )}
 
-                {/* Журнал изменений (Audit Log) */}
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 space-y-2">
                   <h2 className="text-sm font-extrabold">📜 Журнал изменений ({logs.length})</h2>
                   {logs.length === 0 ? (
@@ -2080,7 +2027,6 @@
                   )}
                 </div>
 
-                {/* Встроенная проверка алгоритма (Юнит-тесты прямо на телефоне) */}
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <h2 className="text-sm font-extrabold">🧪 Самопроверка алгоритма</h2>
@@ -2106,8 +2052,48 @@
             )}
 
             {/* =========================================================
-                МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ («ПЕРЕСЧЕТ» И «ОЧИСТИТЬ СУТКИ»)
+                МОДАЛКА ВЫБОРА РЕЖИМА ПЕРЕСЧЕТА (С ЗАЩИТОЙ ПРОШЕДШИХ ДНЕЙ)
                ========================================================= */}
+            {recalcModalOpen && (
+              <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+                <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-5 space-y-3.5 border border-slate-200 dark:border-slate-800 shadow-2xl">
+                  <h3 className="text-base font-extrabold">🔄 Как пересчитать {currentMonthInfo.monthTitle}?</h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Выберите, нужно ли сохранить уже прошедшие дни месяца в истории без изменений:
+                  </p>
+                  <div className="space-y-2 pt-1">
+                    <button
+                      onClick={() => executeRecalculate(true)}
+                      className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 text-white text-xs font-extrabold text-left"
+                    >
+                      ✅ Пересчитать только с СЕГОДНЯШНЕГО дня
+                      <span className="block text-[10px] font-normal text-indigo-100 mt-0.5">
+                        Все прошедшие дни месяца останутся в истории нетронутыми
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => executeRecalculate(false)}
+                      className="w-full py-2.5 px-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-extrabold text-left"
+                    >
+                      ⚠️ Пересчитать весь месяц с 1-го числа
+                      <span className="block text-[10px] font-normal opacity-80 mt-0.5">
+                        Перераспределит все дни месяца (1–{currentMonthInfo.daysInMonth}) заново
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => setRecalcModalOpen(false)}
+                      className="w-full py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold"
+                    >
+                      Отмена
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* МОДАЛКА ПОДТВЕРЖДЕНИЯ ОЧИСТКИ СУТОК И БЭКАПА */}
             {confirmDialog && (
               <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
                 <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-5 space-y-4 border border-slate-200 dark:border-slate-800 shadow-2xl">
@@ -2220,7 +2206,7 @@
             {/* НИЖНЯЯ НАВИГАЦИЯ */}
             <nav className={`fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 grid ${isUserAdmin ? 'grid-cols-5' : 'grid-cols-4'} py-2 z-30`}>
               <button onClick={() => setTab('SCHEDULE')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'SCHEDULE' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>
-                <span>📅</span><span>График</span>
+                <span>📅</span><span>Календарь</span>
               </button>
               <button onClick={() => setTab('STATS')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'STATS' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>
                 <span>📊</span><span>Таблица</span>
@@ -2245,4 +2231,4 @@
     ReactDOM.createRoot(document.getElementById('root')).render(<BatteryDutyApp />);
   </script>
 </body>
-</html>
+  </html>
