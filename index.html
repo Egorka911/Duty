@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#4338ca" />
   <link rel="manifest" href='data:application/manifest+json,{"name":"Контроль Взвода","short_name":"Взвод","start_url":"./","display":"standalone","background_color":"%234338ca","theme_color":"%234338ca"}' />
-  <title>Дежурство-Контроль PRO v12 • Календарь Взвода</title>
+  <title>Дежурство-Контроль PRO v13.1 • Календарь Взвода</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -23,7 +23,6 @@
     .fade-in { animation: fadeIn .18s ease-out; }
     @keyframes fadeIn { from { opacity: 0.4 } to { opacity: 1 } }
     .dot-hole { box-shadow: 0 0 0 2px #ef4444 inset; }
-    /* WCAG-контраст для тёмной темы */
     .dark .text-muted { color: #cbd5e1; }
   </style>
 </head>
@@ -181,6 +180,7 @@
       const [selectedDayISO, setSelectedDayISO] = useState(() => toISO(new Date()));
       const [dayFilterMode, setDayFilterMode] = useState('ALL_MONTH');
       const [showOnlyUnassigned, setShowOnlyUnassigned] = useState(false);
+      const [quickViewDate, setQuickViewDate] = useState(null);
 
       const [members, setMembers] = useState(() => {
         const s = localStorage.getItem('bat_v12_members') || localStorage.getItem('bat_v11_members');
@@ -254,10 +254,11 @@
       useEffect(() => {
         const anyModal = Boolean(confirmDialog) || recalcModalOpen || Boolean(modalSlot) ||
           Boolean(batteryModalDate) || Boolean(addSlotDate) || searchOpen ||
-          Boolean(noteModalDate) || Boolean(copyModalDate) || Boolean(absenceModalMember) || Boolean(recalcConfirm);
+          Boolean(noteModalDate) || Boolean(copyModalDate) || Boolean(absenceModalMember) || 
+          Boolean(recalcConfirm) || Boolean(quickViewDate);
         document.body.style.overflow = anyModal ? 'hidden' : '';
         return () => { document.body.style.overflow = ''; };
-      }, [confirmDialog, recalcModalOpen, modalSlot, batteryModalDate, addSlotDate, searchOpen, noteModalDate, copyModalDate, absenceModalMember, recalcConfirm]);
+      }, [confirmDialog, recalcModalOpen, modalSlot, batteryModalDate, addSlotDate, searchOpen, noteModalDate, copyModalDate, absenceModalMember, recalcConfirm, quickViewDate]);
 
       const showToast = (msg, withUndo = false) => {
         setToast(msg);
@@ -620,7 +621,6 @@
           }
         });
 
-        // недельный счётчик
         const weekCount = {};
         currentMembers.forEach((m) => (weekCount[m.id] = {}));
         const weekKeyOf = (dateStr) => {
@@ -693,7 +693,6 @@
               const repeatPenalty = hadSameRoleYesterday ? 5 : 0;
               const squadPenalty = (usedSquadsToday[m.squad] || 0) * 3;
 
-              // недельный лимит
               let weekPenalty = 0;
               if (maxShiftsPerWeek > 0) {
                 const cur = weekCount[m.id]?.[weekKeyOf(dateStr)] || 0;
@@ -740,13 +739,41 @@
         const fallbackEnd = currentMonthInfo.lastDateISO;
         const endDate = lastScheduledDate && lastScheduledDate > dateStr ? lastScheduledDate : fallbackEnd;
         const periodDays = daysDiff(endDate, dateStr) + 1;
+
+        // 1. Делаем глубокую копию, чтобы не мутировать состояние
+        const cleanedSchedules = JSON.parse(JSON.stringify(schedulesWithManualChange));
+
+        // 2. Пробегаем по всем дням начиная с измененной даты
+        // и СНИМАЕМ всех, кого поставил АВТОМАТ (оставляем только locked = true)
+        let cursor = dateStr;
+        let guard = 0;
+        while (cursor <= endDate && guard < 400) {
+          const day = cleanedSchedules[cursor];
+          if (day && day.slots) {
+            day.slots = day.slots.map(slot => {
+              if (slot.locked) return slot; // Ручные (закрепленные) не трогаем
+              return { ...slot, memberId: null, isManual: false, isPenalty: false }; // Авто - снимаем
+            });
+          }
+          cursor = addDaysISO(cursor, 1);
+          guard++;
+        }
+
+        // 3. Запускаем генератор. Он заполнит пустые слоты с учетом НОВОГО ручного назначения
         const { updatedSchedules } = runScheduleGenerator(
-          schedulesWithManualChange, true, dateStr, periodDays, members, taskTemplates
+          cleanedSchedules, 
+          true, 
+          dateStr, 
+          periodDays, 
+          members, 
+          taskTemplates
         );
+
         const { errors, emptySlots } = validateSchedule(updatedSchedules, members, cooldownDays);
         if (errors.length > 0) showToast(`⚠️ Ошибок: ${errors.length}`);
         else if (emptySlots > 0) showToast(`График пересчитан. Свободных: ${emptySlots}`);
-        else showToast('✅ Всё заполнено');
+        else showToast('✅ Пересчитано');
+        
         return updatedSchedules;
       };
 
@@ -792,7 +819,6 @@
         reportGenerationResult(updatedSchedules);
       };
 
-      // ==== ОТМЕНА ====
       const undoLastAction = () => {
         if (!lastUndo || !isUserAdmin) return;
         haptic('medium');
@@ -802,7 +828,6 @@
         setLastUndo(null);
       };
 
-      // ==== ПОДТВЕРЖДЕНИЯ ====
       const askConfirmDeleteSlot = (dateStr, slotObj) => {
         if (!isUserAdmin) return;
         setConfirmDialog({
@@ -1220,7 +1245,6 @@
               </div>
             )}
 
-            {/* Плашка «не синхронизировано» */}
             {pendingSync && (
               <div
                 onClick={() => pushToCloudNow()}
@@ -1344,10 +1368,9 @@
                         return (
                           <button key={cell.iso}
                             onClick={() => {
+                              haptic('light');
+                              setQuickViewDate(cell.iso); 
                               setSelectedDayISO(cell.iso);
-                              const el = document.getElementById(`day-card-${cell.iso}`);
-                              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                              else setDayFilterMode('SINGLE_DAY');
                             }}
                             className={`h-12 rounded-xl border p-1 flex flex-col items-center justify-between transition relative ${hasHoles ? 'dot-hole' : ''} ${
                               isSelected ? 'border-2 border-indigo-600 bg-indigo-50 dark:bg-indigo-950'
@@ -1756,6 +1779,94 @@
                           <div className="text-[11px] text-slate-600">{tr.detail}</div>
                         </div>
                       ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* БЫСТРЫЙ ПРОСМОТР ДНЯ ИЗ КАЛЕНДАРЯ */}
+            {quickViewDate && (
+              <div className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center" onClick={() => setQuickViewDate(null)}>
+                <div 
+                  className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl p-5 space-y-4 modal-enter max-h-[80vh] overflow-y-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between border-b dark:border-slate-800 pb-3">
+                    <div>
+                      <div className="text-base font-extrabold capitalize">{formatRuDate(quickViewDate)}</div>
+                      <div className="text-[11px] font-mono text-slate-500">{quickViewDate}</div>
+                    </div>
+                    <button onClick={() => setQuickViewDate(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 font-bold flex items-center justify-center">✕</button>
+                  </div>
+
+                  {schedules[quickViewDate]?.note && (
+                    <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 text-xs font-bold text-amber-900 dark:text-amber-200">
+                      📝 {schedules[quickViewDate].note}
+                    </div>
+                  )}
+
+                  {schedules[quickViewDate]?.batteryDutyIds?.length > 0 && (
+                    <div className="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200">
+                      <div className="text-[10px] font-extrabold uppercase text-amber-800 dark:text-amber-300 mb-1">🛡️ Наряд по батарее</div>
+                      <div className="text-sm font-bold text-amber-950 dark:text-amber-200">
+                        {schedules[quickViewDate].batteryDutyIds.map((id) => getMember(id)?.fullName).join(', ')}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <div className="text-[10px] font-extrabold uppercase text-slate-400">Задачи на день</div>
+                    {(!schedules[quickViewDate]?.slots || schedules[quickViewDate].slots.length === 0) ? (
+                      <div className="text-center py-4 text-xs text-slate-400 border border-dashed rounded-xl">Задач нет</div>
+                    ) : (
+                      schedules[quickViewDate].slots.map((slot) => {
+                        const m = getMember(slot.memberId);
+                        return (
+                          <div key={slot.id} className={`p-2.5 rounded-xl border flex items-center justify-between ${slot.isPenalty ? 'bg-rose-50 border-rose-200' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-[10px] font-extrabold uppercase text-indigo-600 dark:text-indigo-400 mb-0.5">{slot.title}</div>
+                              <div className="flex items-center gap-1.5">
+                                <span className={`text-sm font-bold truncate ${m ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
+                                  {m ? m.fullName : 'Не назначен'}
+                                </span>
+                                {m && <span className={`text-[9px] font-bold px-1 rounded ${SQUAD_BADGE[m.squad]}`}>{m.squad} отд.</span>}
+                              </div>
+                            </div>
+                            {isUserAdmin && (
+                              <button 
+                                onClick={() => { setQuickViewDate(null); setModalSlot({ date: quickViewDate, slot }); }} 
+                                className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs font-bold shadow-xs shrink-0"
+                              >
+                                ✏️
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {isUserAdmin && (
+                    <div className="grid grid-cols-2 gap-2 pt-2">
+                      <button 
+                        onClick={() => { setQuickViewDate(null); setAddSlotDate(quickViewDate); }}
+                        className="py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold rounded-xl"
+                      >
+                        + Задача
+                      </button>
+                      <button 
+                        onClick={() => { 
+                          setQuickViewDate(null); 
+                          setSelectedDayISO(quickViewDate); 
+                          setDayFilterMode('SINGLE_DAY'); 
+                          setTab('SCHEDULE'); 
+                          setTimeout(() => document.getElementById(`day-card-${quickViewDate}`)?.scrollIntoView({behavior:'smooth'}), 100);
+                        }}
+                        className="py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold rounded-xl"
+                      >
+                        🔍 В списке
+                      </button>
                     </div>
                   )}
                 </div>
