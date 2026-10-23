@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Дежурство-Контроль PRO v10 • Календарь Взвода</title>
+  <meta name="theme-color" content="#4338ca" />
+  <link rel="manifest" href='data:application/manifest+json,{"name":"Контроль Взвода","short_name":"Взвод","start_url":"./","display":"standalone","background_color":"%234338ca","theme_color":"%234338ca"}' />
+  <title>Дежурство-Контроль PRO v12 • Календарь Взвода</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -16,6 +18,13 @@
   <style>
     body { -webkit-tap-highlight-color: transparent; }
     .safe-bottom { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)); }
+    .modal-enter { animation: slideUp .18s ease-out; }
+    @keyframes slideUp { from { transform: translateY(100%); opacity: 0.4; } to { transform: translateY(0); opacity: 1; } }
+    .fade-in { animation: fadeIn .18s ease-out; }
+    @keyframes fadeIn { from { opacity: 0.4 } to { opacity: 1 } }
+    .dot-hole { box-shadow: 0 0 0 2px #ef4444 inset; }
+    /* WCAG-контраст для тёмной темы */
+    .dark .text-muted { color: #cbd5e1; }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-900 select-none">
@@ -45,34 +54,34 @@
     };
 
     const INITIAL_MEMBERS = [
-      { id: 'm01', fullName: 'Кузнецов', squad: 1, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm02', fullName: 'Гежа', squad: 1, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm03', fullName: 'Казаков', squad: 1, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm04', fullName: 'Ряховский', squad: 1, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm05', fullName: 'Гагарин', squad: 1, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm06', fullName: 'Марков', squad: 2, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm07', fullName: 'Андрушко', squad: 2, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm08', fullName: 'Петухов', squad: 2, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm09', fullName: 'Сейдиев', squad: 2, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm10', fullName: 'Ремыга', squad: 2, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm11', fullName: 'Гриневский', squad: 2, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm12', fullName: 'Файзуллин', squad: 2, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm13', fullName: 'Кузьминов', squad: 2, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm14', fullName: 'Чиликанов', squad: 2, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm15', fullName: 'Романов', squad: 3, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm16', fullName: 'Мамадалиев', squad: 3, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm17', fullName: 'Корсаков', squad: 3, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm18', fullName: 'Сеитжалилов', squad: 3, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm19', fullName: 'Ильиных', squad: 3, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm20', fullName: 'Шамардин', squad: 3, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm21', fullName: 'Чумаченко', squad: 3, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm22', fullName: 'Кроль', squad: 3, status: 'ACTIVE', baseScore: 0 },
-      { id: 'm23', fullName: 'Ялозницкий', squad: 3, status: 'ACTIVE', baseScore: 0 },
+      { id: 'm01', fullName: 'Кузнецов', squad: 1, status: 'ACTIVE', absences: [] },
+      { id: 'm02', fullName: 'Гежа', squad: 1, status: 'ACTIVE', absences: [] },
+      { id: 'm03', fullName: 'Казаков', squad: 1, status: 'ACTIVE', absences: [] },
+      { id: 'm04', fullName: 'Ряховский', squad: 1, status: 'ACTIVE', absences: [] },
+      { id: 'm05', fullName: 'Гагарин', squad: 1, status: 'ACTIVE', absences: [] },
+      { id: 'm06', fullName: 'Марков', squad: 2, status: 'ACTIVE', absences: [] },
+      { id: 'm07', fullName: 'Андрушко', squad: 2, status: 'ACTIVE', absences: [] },
+      { id: 'm08', fullName: 'Петухов', squad: 2, status: 'ACTIVE', absences: [] },
+      { id: 'm09', fullName: 'Сейдиев', squad: 2, status: 'ACTIVE', absences: [] },
+      { id: 'm10', fullName: 'Ремыга', squad: 2, status: 'ACTIVE', absences: [] },
+      { id: 'm11', fullName: 'Гриневский', squad: 2, status: 'ACTIVE', absences: [] },
+      { id: 'm12', fullName: 'Файзуллин', squad: 2, status: 'ACTIVE', absences: [] },
+      { id: 'm13', fullName: 'Кузьминов', squad: 2, status: 'ACTIVE', absences: [] },
+      { id: 'm14', fullName: 'Чиликанов', squad: 2, status: 'ACTIVE', absences: [] },
+      { id: 'm15', fullName: 'Романов', squad: 3, status: 'ACTIVE', absences: [] },
+      { id: 'm16', fullName: 'Мамадалиев', squad: 3, status: 'ACTIVE', absences: [] },
+      { id: 'm17', fullName: 'Корсаков', squad: 3, status: 'ACTIVE', absences: [] },
+      { id: 'm18', fullName: 'Сеитжалилов', squad: 3, status: 'ACTIVE', absences: [] },
+      { id: 'm19', fullName: 'Ильиных', squad: 3, status: 'ACTIVE', absences: [] },
+      { id: 'm20', fullName: 'Шамардин', squad: 3, status: 'ACTIVE', absences: [] },
+      { id: 'm21', fullName: 'Чумаченко', squad: 3, status: 'ACTIVE', absences: [] },
+      { id: 'm22', fullName: 'Кроль', squad: 3, status: 'ACTIVE', absences: [] },
+      { id: 'm23', fullName: 'Ялозницкий', squad: 3, status: 'ACTIVE', absences: [] },
     ];
 
     const INITIAL_TEMPLATES = [
-      { id: 't_duty', title: 'Дежурный по классу', count: 1, weight: 1.2 },
-      { id: 't_clean', title: 'Уборка класса', count: 2, weight: 1.0 },
+      { id: 't_duty', title: 'Дежурный по классу', count: 1 },
+      { id: 't_clean', title: 'Уборка класса', count: 2 },
     ];
 
     const STATUS_INFO = {
@@ -106,6 +115,10 @@
       const d = new Date(iso + 'T00:00:00');
       return d.toLocaleDateString('ru-RU', { weekday: 'short', day: '2-digit', month: 'short' });
     };
+    const inAbsence = (member, dateStr) => {
+      if (!member?.absences) return false;
+      return member.absences.some((a) => dateStr >= a.from && dateStr <= a.to);
+    };
 
     function HighlightText({ text, query }) {
       if (!query || !query.trim()) return <span>{text}</span>;
@@ -125,40 +138,41 @@
     const SUPA_URL = 'https://yasxjwbyhiryslkwfhof.supabase.co';
     const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlhc3hqd2J5aGlyeXNsa3dmaG9mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxNjE5NjUsImV4cCI6MjEwNzczNzk2NX0.WB4ANU1rdyXsF43aRNuXZ1bchUfhdZ4BNahTu6vtnPE';
     const ROOM_CODE = 'battery_main';
-
     const supabaseClient = window.supabase ? window.supabase.createClient(SUPA_URL, SUPA_KEY) : null;
 
-    // ==== ВАЛИДАТОР ГРАФИКА ====
-    const validateSchedule = (scheduleMap, memberList) => {
+    const validateSchedule = (scheduleMap, memberList, cooldownDays) => {
       const errors = [];
-      const warnings = [];
-      const memberIds = new Set(memberList.map((m) => m.id));
       let emptySlots = 0;
-
+      const memberIds = new Set(memberList.map((m) => m.id));
+      const memberById = new Map(memberList.map((m) => [m.id, m]));
       Object.entries(scheduleMap).forEach(([date, day]) => {
         const assignedToday = new Set();
         (day.batteryDutyIds || []).forEach((id) => {
-          if (!memberIds.has(id)) errors.push(`${date}: неизвестный боец ${id}`);
-          if (assignedToday.has(id)) errors.push(`${date}: двойное назначение ${id}`);
+          if (!memberIds.has(id)) errors.push(`${date}: неизвестный ${id}`);
+          if (assignedToday.has(id)) errors.push(`${date}: двойное ${id}`);
           assignedToday.add(id);
         });
         (day.slots || []).forEach((slot) => {
-          if (!slot.memberId) { warnings.push(`${date}: свободна «${slot.title}»`); emptySlots++; return; }
-          if (!memberIds.has(slot.memberId)) errors.push(`${date}: неизвестный боец ${slot.memberId}`);
-          if (assignedToday.has(slot.memberId)) errors.push(`${date}: двойное назначение ${slot.memberId}`);
+          if (!slot.memberId) { emptySlots++; return; }
+          if (!memberIds.has(slot.memberId)) errors.push(`${date}: неизвестный ${slot.memberId}`);
+          if (assignedToday.has(slot.memberId)) errors.push(`${date}: двойное ${slot.memberId}`);
           assignedToday.add(slot.memberId);
+          const m = memberById.get(slot.memberId);
+          if (m && inAbsence(m, date)) errors.push(`${date}: назначен отсутствующий ${m.fullName}`);
         });
       });
-      return { errors, warnings, emptySlots };
+      return { errors, emptySlots };
     };
 
     function BatteryDutyApp() {
       const todayISO = useMemo(() => toISO(new Date()), []);
+      const tomorrowISO = useMemo(() => addDaysISO(todayISO, 1), [todayISO]);
 
-      const [tab, setTab] = useState('SCHEDULE');
+      const [tab, setTab] = useState('TODAY');
       const [darkMode, setDarkMode] = useState(() => localStorage.getItem('bat_dark') === '1');
       const [toast, setToast] = useState(null);
       const [cloudStatus, setCloudStatus] = useState('⏳ Синхронизация...');
+      const [pendingSync, setPendingSync] = useState(false);
 
       const [calendarMonthISO, setCalendarMonthISO] = useState(() => {
         const now = new Date();
@@ -169,39 +183,33 @@
       const [showOnlyUnassigned, setShowOnlyUnassigned] = useState(false);
 
       const [members, setMembers] = useState(() => {
-        const s = localStorage.getItem('bat_v9_members');
+        const s = localStorage.getItem('bat_v12_members') || localStorage.getItem('bat_v11_members');
         return s ? JSON.parse(s) : INITIAL_MEMBERS;
       });
       const [taskTemplates, setTaskTemplates] = useState(() => {
-        const s = localStorage.getItem('bat_v9_templates');
+        const s = localStorage.getItem('bat_v12_templates') || localStorage.getItem('bat_v11_templates');
         return s ? JSON.parse(s) : INITIAL_TEMPLATES;
       });
       const [schedules, setSchedules] = useState(() => {
-        const s = localStorage.getItem('bat_v9_schedules');
+        const s = localStorage.getItem('bat_v12_schedules') || localStorage.getItem('bat_v11_schedules');
         return s ? JSON.parse(s) : {};
       });
-      const [debts, setDebts] = useState(() => {
-        const s = localStorage.getItem('bat_v9_debts');
-        return s ? JSON.parse(s) : [];
-      });
-      const [batteryWeight, setBatteryWeight] = useState(() => {
-        const s = localStorage.getItem('bat_v9_bweight');
-        return s !== null ? Number(s) : 0.5;
-      });
       const [protectRestDay, setProtectRestDay] = useState(true);
+      const [cooldownDays, setCooldownDays] = useState(() => Number(localStorage.getItem('bat_v12_cooldown') || 2));
+      const [maxShiftsPerWeek, setMaxShiftsPerWeek] = useState(() => Number(localStorage.getItem('bat_v12_maxweek') || 0));
       const [logs, setLogs] = useState(() => {
-        const s = localStorage.getItem('bat_v9_logs');
+        const s = localStorage.getItem('bat_v12_logs') || localStorage.getItem('bat_v11_logs');
         return s ? JSON.parse(s) : [];
       });
       const [backups, setBackups] = useState(() => {
-        const s = localStorage.getItem('bat_v9_backups');
+        const s = localStorage.getItem('bat_v12_backups') || localStorage.getItem('bat_v11_backups');
         return s ? JSON.parse(s) : [];
       });
 
       const lastSyncTimestampRef = useRef(0);
+      const [lastUndo, setLastUndo] = useState(null);
 
       const [statSquadFilter, setStatSquadFilter] = useState(0);
-      const [statStatusFilter, setStatStatusFilter] = useState('ALL');
       const [statTaskFilter, setStatTaskFilter] = useState('ALL');
       const [statDateScope, setStatDateScope] = useState('ALL');
       const [statCustomFrom, setStatCustomFrom] = useState(() => {
@@ -210,39 +218,51 @@
       });
       const [statCustomTo, setStatCustomTo] = useState(() => toISO(new Date()));
       const [statSearch, setStatSearch] = useState('');
-      const [statSortBy, setStatSortBy] = useState('SCORE_DESC');
+      const [statSortBy, setStatSortBy] = useState('TOTAL_DESC');
 
       const [confirmDialog, setConfirmDialog] = useState(null);
       const [recalcModalOpen, setRecalcModalOpen] = useState(false);
+      const [recalcRange, setRecalcRange] = useState({ from: '', to: '' });
+      const [recalcConfirm, setRecalcConfirm] = useState(null);
       const [modalSlot, setModalSlot] = useState(null);
       const [assignMode, setAssignMode] = useState('REGULAR');
       const [batteryModalDate, setBatteryModalDate] = useState(null);
       const [addSlotDate, setAddSlotDate] = useState(null);
       const [customSlotTitle, setCustomSlotTitle] = useState('');
-      const [customSlotWeight, setCustomSlotWeight] = useState(1.0);
       const [testResults, setTestResults] = useState(null);
+      const [searchOpen, setSearchOpen] = useState(false);
+      const [noteModalDate, setNoteModalDate] = useState(null);
+      const [noteText, setNoteText] = useState('');
+      const [copyModalDate, setCopyModalDate] = useState(null);
+      const [copyRange, setCopyRange] = useState({ from: '', to: '' });
+      const [absenceModalMember, setAbsenceModalMember] = useState(null);
+      const [absenceForm, setAbsenceForm] = useState({ from: '', to: '', reason: '' });
+      const [backupFilter, setBackupFilter] = useState('ALL');
 
       const [newTplTitle, setNewTplTitle] = useState('');
       const [newTplCount, setNewTplCount] = useState(1);
-      const [newTplWeight, setNewTplWeight] = useState(1.0);
 
       useEffect(() => { localStorage.setItem('bat_dark', darkMode ? '1' : '0'); }, [darkMode]);
-      useEffect(() => localStorage.setItem('bat_v9_members', JSON.stringify(members)), [members]);
-      useEffect(() => localStorage.setItem('bat_v9_templates', JSON.stringify(taskTemplates)), [taskTemplates]);
-      useEffect(() => localStorage.setItem('bat_v9_schedules', JSON.stringify(schedules)), [schedules]);
-      useEffect(() => localStorage.setItem('bat_v9_debts', JSON.stringify(debts)), [debts]);
-      useEffect(() => localStorage.setItem('bat_v9_bweight', String(batteryWeight)), [batteryWeight]);
-      useEffect(() => localStorage.setItem('bat_v9_logs', JSON.stringify(logs)), [logs]);
-      useEffect(() => localStorage.setItem('bat_v9_backups', JSON.stringify(backups)), [backups]);
+      useEffect(() => localStorage.setItem('bat_v12_members', JSON.stringify(members)), [members]);
+      useEffect(() => localStorage.setItem('bat_v12_templates', JSON.stringify(taskTemplates)), [taskTemplates]);
+      useEffect(() => localStorage.setItem('bat_v12_schedules', JSON.stringify(schedules)), [schedules]);
+      useEffect(() => localStorage.setItem('bat_v12_logs', JSON.stringify(logs)), [logs]);
+      useEffect(() => localStorage.setItem('bat_v12_backups', JSON.stringify(backups)), [backups]);
+      useEffect(() => localStorage.setItem('bat_v12_cooldown', String(cooldownDays)), [cooldownDays]);
+      useEffect(() => localStorage.setItem('bat_v12_maxweek', String(maxShiftsPerWeek)), [maxShiftsPerWeek]);
 
       useEffect(() => {
         const anyModal = Boolean(confirmDialog) || recalcModalOpen || Boolean(modalSlot) ||
-          Boolean(batteryModalDate) || Boolean(addSlotDate);
+          Boolean(batteryModalDate) || Boolean(addSlotDate) || searchOpen ||
+          Boolean(noteModalDate) || Boolean(copyModalDate) || Boolean(absenceModalMember) || Boolean(recalcConfirm);
         document.body.style.overflow = anyModal ? 'hidden' : '';
         return () => { document.body.style.overflow = ''; };
-      }, [confirmDialog, recalcModalOpen, modalSlot, batteryModalDate, addSlotDate]);
+      }, [confirmDialog, recalcModalOpen, modalSlot, batteryModalDate, addSlotDate, searchOpen, noteModalDate, copyModalDate, absenceModalMember, recalcConfirm]);
 
-      const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3200); };
+      const showToast = (msg, withUndo = false) => {
+        setToast(msg);
+        setTimeout(() => setToast(null), withUndo ? 6000 : 3200);
+      };
       const getMember = (id, list = members) => list.find((m) => m.id === id);
       const getName = (id, list = members) => {
         const m = getMember(id, list);
@@ -266,6 +286,15 @@
         return { year: y, month: m, firstDateISO: datesList[0], lastDateISO: datesList[datesList.length - 1], daysInMonth, datesList, cells, monthTitle };
       }, [calendarMonthISO]);
 
+      const monthHoleCount = useMemo(() => {
+        let count = 0;
+        currentMonthInfo.datesList.forEach((iso) => {
+          const day = schedules[iso];
+          if (day?.slots?.some((s) => !s.memberId)) count++;
+        });
+        return count;
+      }, [schedules, currentMonthInfo]);
+
       const changeMonth = (delta) => {
         haptic('light');
         const [y, m] = calendarMonthISO.split('-').map(Number);
@@ -288,6 +317,28 @@
         }, 100);
       };
 
+      const jumpToMember = (memberId) => {
+        setSearchOpen(false);
+        const member = getMember(memberId);
+        if (!member) return;
+        const today = toISO(new Date());
+        const futureDates = Object.keys(schedules).sort().filter((d) => d >= today && schedules[d]?.slots?.some((s) => s.memberId === memberId));
+        const anyDates = Object.keys(schedules).sort().filter((d) => schedules[d]?.slots?.some((s) => s.memberId === memberId));
+        const target = futureDates[0] || anyDates[anyDates.length - 1];
+        if (target) {
+          const [y, m] = target.split('-');
+          setCalendarMonthISO(`${y}-${m}-01`);
+          setSelectedDayISO(target);
+          setTimeout(() => {
+            const el = document.getElementById(`day-card-${target}`);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 100);
+        } else {
+          setTab('STATS');
+          setStatSearch(member.fullName);
+        }
+      };
+
       // ==== СИНХРОНИЗАЦИЯ ====
       const applyRemoteState = (st, updatedAtStr) => {
         if (!st || typeof st !== 'object') return;
@@ -297,7 +348,6 @@
 
         if (Array.isArray(st.members)) setMembers(st.members);
         if (Array.isArray(st.taskTemplates)) setTaskTemplates(st.taskTemplates);
-
         if (st.schedules) {
           setSchedules((prev) => {
             const merged = { ...prev, ...st.schedules };
@@ -308,17 +358,6 @@
             return merged;
           });
         }
-        if (Array.isArray(st.debts)) {
-          setDebts((prev) => {
-            const byId = new Map(prev.map((d) => [d.id, d]));
-            st.debts.forEach((rd) => {
-              const local = byId.get(rd.id);
-              if (!local || (rd.count || 0) >= (local.count || 0)) byId.set(rd.id, rd);
-            });
-            return Array.from(byId.values()).filter((d) => (d.count || 0) > 0);
-          });
-        }
-        if (st.batteryWeight !== undefined) setBatteryWeight(st.batteryWeight);
         if (Array.isArray(st.logs)) {
           setLogs((prev) => {
             const byId = new Map(prev.map((l) => [l.id, l]));
@@ -328,6 +367,7 @@
         }
         if (Array.isArray(st.backups)) setBackups(st.backups);
         setCloudStatus('🟢 Live-синхронизация активна');
+        setPendingSync(false);
       };
 
       const pushToCloudNow = async (overrides = {}) => {
@@ -338,13 +378,11 @@
           members: overrides.members ?? members,
           taskTemplates: overrides.taskTemplates ?? taskTemplates,
           schedules: overrides.schedules ?? schedules,
-          debts: overrides.debts ?? debts,
-          batteryWeight: overrides.batteryWeight ?? batteryWeight,
           logs: overrides.logs ?? logs,
           backups: overrides.backups ?? backups,
         };
         try {
-          setCloudStatus('⏳ Сохранение изменений...');
+          setCloudStatus('⏳ Сохранение...');
           const res = await fetch(`${SUPA_URL}/rest/v1/duty_sync?on_conflict=room_code`, {
             method: 'POST',
             headers: {
@@ -355,15 +393,16 @@
             },
             body: JSON.stringify({ room_code: ROOM_CODE, state_json: nextState, updated_at: nowIso }),
           });
-          if (!res.ok) { setCloudStatus(`❌ Ошибка сохранения (${res.status})`); return false; }
-          setCloudStatus('🟢 Все изменения синхронизированы');
+          if (!res.ok) { setCloudStatus(`❌ Ошибка (${res.status})`); setPendingSync(true); return false; }
+          setCloudStatus('🟢 Синхронизировано');
+          setPendingSync(false);
           return true;
-        } catch (e) { setCloudStatus('❌ Ошибка сети'); return false; }
+        } catch (e) { setCloudStatus('❌ Ошибка сети'); setPendingSync(true); return false; }
       };
 
       const pullFromCloudNow = async (silent = false) => {
         try {
-          if (!silent) setCloudStatus('⏳ Загрузка из облака...');
+          if (!silent) setCloudStatus('⏳ Загрузка...');
           const res = await fetch(
             `${SUPA_URL}/rest/v1/duty_sync?room_code=eq.${ROOM_CODE}&select=state_json,updated_at`,
             { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Cache-Control': 'no-cache' } }
@@ -376,18 +415,15 @@
         } catch (e) { if (!silent) setCloudStatus('⚠️ Автономный режим'); }
       };
 
-      // ==== ОБНОВЛЕНИЕ РАЗ В 60 СЕКУНД + VISIBILITY + REALTIME ====
       useEffect(() => {
         let cancelled = false;
         let channel = null;
-
         const loadCloudState = async (silent = false) => {
           if (cancelled) return;
           await pullFromCloudNow(silent);
+          if (pendingSync) pushToCloudNow();
         };
-
         loadCloudState(false);
-
         if (supabaseClient) {
           channel = supabaseClient
             .channel('public:duty_sync')
@@ -400,21 +436,18 @@
               }
             ).subscribe();
         }
-
-        const interval = setInterval(() => loadCloudState(true), 60000); // было 5000
-
+        const interval = setInterval(() => loadCloudState(true), 60000);
         const handleVisibilityChange = () => {
           if (document.visibilityState === 'visible') loadCloudState(true);
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
-
         return () => {
           cancelled = true;
           clearInterval(interval);
           document.removeEventListener('visibilitychange', handleVisibilityChange);
           if (channel && supabaseClient) supabaseClient.removeChannel(channel);
         };
-      }, []);
+      }, [pendingSync]);
 
       const createLogAndBackup = (actionTitle, detailsText, createSnapshot = false, type = 'OTHER') => {
         const timeStr = new Date().toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -428,13 +461,12 @@
         let nextBackups = backups;
         if (createSnapshot) {
           const snap = {
-            id: `bk_${Date.now()}`, time: timeStr,
+            id: `bk_${Date.now()}`, time: timeStr, type,
             label: `${actionTitle}: ${detailsText.slice(0, 40)}`,
             schedules: JSON.parse(JSON.stringify(schedules)),
-            debts: JSON.parse(JSON.stringify(debts)),
             members: JSON.parse(JSON.stringify(members)),
           };
-          nextBackups = [snap, ...backups.slice(0, 9)];
+          nextBackups = [snap, ...backups.slice(0, 19)];
           setBackups(nextBackups);
         }
         return { nextLogs, nextBackups };
@@ -444,22 +476,18 @@
         if (!isUserAdmin) return;
         setConfirmDialog({
           title: '⏪ Восстановить бэкап?',
-          message: `График вернется к состоянию от ${snap.time} («${snap.label}»).`,
+          message: `График вернётся к состоянию от ${snap.time} («${snap.label}»).`,
           confirmLabel: 'Восстановить',
           onConfirm: () => {
             setSchedules(snap.schedules);
-            setDebts(snap.debts || []);
             if (snap.members) setMembers(snap.members);
-            const { nextLogs } = createLogAndBackup('⏪ Откат из бэкапа', `Восстановлена версия от ${snap.time}`, false, 'RESTORE');
-            pushToCloudNow({ schedules: snap.schedules, debts: snap.debts || [], members: snap.members || members, logs: nextLogs });
+            const { nextLogs } = createLogAndBackup('⏪ Откат из бэкапа', `Версия от ${snap.time}`, false, 'RESTORE');
+            pushToCloudNow({ schedules: snap.schedules, members: snap.members || members, logs: nextLogs });
             setConfirmDialog(null);
-            showToast('⏪ График восстановлен!');
+            showToast('⏪ График восстановлен');
           },
         });
       };
-
-      const isOnBatteryDuty = (memberId, dateStr, schedMap = schedules) =>
-        Boolean(schedMap[dateStr]?.batteryDutyIds?.includes(memberId));
 
       const isRecoveringFromBatteryDuty = (memberId, dateStr, schedMap = schedules) => {
         if (!protectRestDay) return false;
@@ -478,12 +506,8 @@
       const statsMap = useMemo(() => {
         const map = {};
         members.forEach((m) => {
-          map[m.id] = {
-            ...m, regularShifts: 0, penaltyShifts: 0, batteryCount: 0,
-            totalAll: 0, score: m.baseScore || 0, owesCount: 0, owedToMeCount: 0, byTitle: {},
-          };
+          map[m.id] = { ...m, batteryCount: 0, totalAll: 0, byTitle: {}, regularShifts: 0, penaltyShifts: 0 };
         });
-
         Object.keys(schedules).sort().forEach((date) => {
           if (statDateScope === 'MONTH') {
             if (date < currentMonthInfo.firstDateISO || date > currentMonthInfo.lastDateISO) return;
@@ -493,48 +517,37 @@
           const day = schedules[date];
           if (!day) return;
           (day.batteryDutyIds || []).forEach((mId) => {
-            if (map[mId]) {
-              map[mId].batteryCount += 1;
-              map[mId].totalAll += 1;
-              map[mId].score += Number(batteryWeight) || 0;
-            }
+            if (map[mId]) { map[mId].batteryCount += 1; map[mId].totalAll += 1; }
           });
           (day.slots || []).forEach((s) => {
             if (!s.memberId || !map[s.memberId]) return;
             const st = map[s.memberId];
             st.totalAll += 1;
-            const w = Number(s.weight) || 1.0;
             st.byTitle[s.title] = (st.byTitle[s.title] || 0) + 1;
             if (s.isPenalty) st.penaltyShifts += 1;
-            else { st.regularShifts += 1; st.score += w; }
+            else st.regularShifts += 1;
           });
         });
-
-        debts.forEach((d) => {
-          if (map[d.debtorId]) map[d.debtorId].owesCount += d.count;
-          if (map[d.creditorId]) map[d.creditorId].owedToMeCount += d.count;
-        });
         return map;
-      }, [members, schedules, batteryWeight, debts, statDateScope, currentMonthInfo, statCustomFrom, statCustomTo]);
+      }, [members, schedules, statDateScope, currentMonthInfo, statCustomFrom, statCustomTo]);
 
       const fairnessMetrics = useMemo(() => {
         const activeList = Object.values(statsMap).filter((m) => m.status === 'ACTIVE');
-        if (activeList.length === 0) return { index: 100, stdDev: 0, min: 0, max: 0, avg: 0 };
-        const scores = activeList.map((m) => m.score);
-        const min = Math.min(...scores);
-        const max = Math.max(...scores);
-        const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-        const variance = scores.reduce((acc, s) => acc + Math.pow(s - avg, 2), 0) / scores.length;
+        if (activeList.length === 0) return { index: 100, stdDev: 0, min: 0, max: 0 };
+        const counts = activeList.map((m) => m.totalAll);
+        const min = Math.min(...counts);
+        const max = Math.max(...counts);
+        const avg = counts.reduce((a, b) => a + b, 0) / counts.length;
+        const variance = counts.reduce((acc, s) => acc + Math.pow(s - avg, 2), 0) / counts.length;
         const stdDev = Math.sqrt(variance);
-        const index = Math.max(0, Math.min(100, Math.round(100 - stdDev * 18)));
-        return { index, stdDev, min, max, avg };
+        const index = Math.max(0, Math.min(100, Math.round(100 - stdDev * 15)));
+        return { index, stdDev, min, max };
       }, [statsMap]);
 
       const filteredStatsList = useMemo(() => {
         return Object.values(statsMap)
           .filter((st) => {
             if (statSquadFilter !== 0 && st.squad !== statSquadFilter) return false;
-            if (statStatusFilter !== 'ALL' && st.status !== statStatusFilter) return false;
             if (statSearch.trim() && !st.fullName.toLowerCase().includes(statSearch.trim().toLowerCase())) return false;
             if (statTaskFilter !== 'ALL') {
               if (statTaskFilter === 'BATTERY' && (st.batteryCount || 0) === 0) return false;
@@ -545,8 +558,7 @@
           })
           .sort((a, b) => {
             if (statSortBy === 'NAME_ASC') return a.fullName.localeCompare(b.fullName, 'ru');
-            if (statSortBy === 'SCORE_ASC') return a.score - b.score;
-            if (statSortBy === 'TOTAL_DESC') return b.totalAll - a.totalAll;
+            if (statSortBy === 'TOTAL_ASC') return a.totalAll - b.totalAll;
             if (statSortBy === 'TASK_DESC') {
               const getVal = (item) => {
                 if (statTaskFilter === 'ALL') return item.totalAll;
@@ -556,13 +568,14 @@
               };
               return getVal(b) - getVal(a);
             }
-            return b.score - a.score;
+            return b.totalAll - a.totalAll;
           });
-      }, [statsMap, statSquadFilter, statStatusFilter, statSearch, statSortBy, statTaskFilter]);
+      }, [statsMap, statSquadFilter, statSearch, statSortBy, statTaskFilter]);
 
-      // ==== ГЕНЕРАТОР С УЛУЧШЕНИЯМИ ====
-      const canAssignMember = ({ member, dateStr, usedToday, schedulesMap, protectRestDay }) => {
+      // ==== ГЕНЕРАТОР ====
+      const canAssignMember = ({ member, dateStr, usedToday, schedulesMap }) => {
         if (member.status !== 'ACTIVE') return false;
+        if (inAbsence(member, dateStr)) return false;
         if (usedToday.has(member.id)) return false;
         if (protectRestDay) {
           const prev = addDaysISO(dateStr, -1);
@@ -571,22 +584,15 @@
         return true;
       };
 
-      const runScheduleGenerator = (baseSchedules, keepExistingSlots, periodStart, periodDays, currentMembers, currentTemplates, currentDebts) => {
+      const runScheduleGenerator = (baseSchedules, keepExistingSlots, periodStart, periodDays, currentMembers, currentTemplates) => {
         const updated = JSON.parse(JSON.stringify(baseSchedules));
         const workload = {};
-        let workingDebts = JSON.parse(JSON.stringify(currentDebts));
-        let autoRepaidCount = 0;
+        currentMembers.forEach((m) => { workload[m.id] = { total: 0, byTitle: {}, lastDate: null }; });
 
-        currentMembers.forEach((m) => {
-          workload[m.id] = { score: Number(m.baseScore) || 0, totalTasks: 0, byTitle: {}, lastDate: null };
-        });
-
-        const addWorkload = (memberId, title, weight, dateStr) => {
+        const addWorkload = (memberId, title, dateStr) => {
           const it = workload[memberId];
           if (!it) return;
-          const w = Number(weight) || 1;
-          it.score += w;
-          it.totalTasks += 1;
+          it.total += 1;
           it.byTitle[title] = (it.byTitle[title] || 0) + 1;
           it.lastDate = dateStr;
         };
@@ -599,34 +605,38 @@
           period.push(toISO(d));
         }
 
-        // История до периода
         Object.keys(updated).sort().forEach((dKey) => {
           if (dKey < period[0]) {
             const day = updated[dKey];
             (day.batteryDutyIds || []).forEach((mId) => {
-              if (workload[mId]) {
-                workload[mId].score += Number(batteryWeight) || 0;
-                workload[mId].lastDate = dKey;
-              }
+              if (workload[mId]) { workload[mId].total += 1; workload[mId].lastDate = dKey; }
             });
             (day.slots || []).forEach((s) => {
-              if (s.memberId && workload[s.memberId] && !s.isPenalty) {
-                addWorkload(s.memberId, s.title, s.weight, dKey);
-              } else if (s.memberId && workload[s.memberId]) {
-                workload[s.memberId].lastDate = dKey;
+              if (s.memberId && workload[s.memberId]) {
+                if (!s.isPenalty) addWorkload(s.memberId, s.title, dKey);
+                else workload[s.memberId].lastDate = dKey;
               }
             });
           }
         });
 
+        // недельный счётчик
+        const weekCount = {};
+        currentMembers.forEach((m) => (weekCount[m.id] = {}));
+        const weekKeyOf = (dateStr) => {
+          const d = new Date(dateStr + 'T00:00:00');
+          const monday = new Date(d);
+          monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+          return toISO(monday);
+        };
+
         period.forEach((dateStr) => {
+          const wk = weekKeyOf(dateStr);
           const existing = updated[dateStr];
           const batteryDutyIds = Array.from(new Set(existing?.batteryDutyIds || []));
           batteryDutyIds.forEach((mId) => {
-            if (workload[mId]) {
-              workload[mId].score += Number(batteryWeight) || 0;
-              workload[mId].lastDate = dateStr;
-            }
+            if (workload[mId]) { workload[mId].total += 1; workload[mId].lastDate = dateStr; }
+            if (weekCount[mId]) weekCount[mId][wk] = (weekCount[mId][wk] || 0) + 1;
           });
 
           const templateSlots = [];
@@ -634,8 +644,8 @@
             for (let c = 0; c < tpl.count; c++) {
               templateSlots.push({
                 id: `${dateStr}_${tpl.id}_${c}_${Math.random().toString(36).slice(2, 5)}`,
-                date: dateStr, title: tpl.title, weight: tpl.weight,
-                memberId: null, isPenalty: false, isManual: false, repaidForName: null, unassignedReason: null,
+                date: dateStr, title: tpl.title,
+                memberId: null, isPenalty: false, isManual: false, locked: false, unassignedReason: null,
               });
             }
           });
@@ -644,53 +654,56 @@
           if (existing && keepExistingSlots && existing.slots && existing.slots.length > 0) {
             slots = existing.slots.map((s) => {
               if (s.memberId && batteryDutyIds.includes(s.memberId)) {
-                return { ...s, memberId: null, isManual: false, isPenalty: false, repaidForName: null, unassignedReason: null };
+                return { ...s, memberId: null, isManual: false, isPenalty: false, unassignedReason: null };
               }
-              return s.memberId ? { ...s } : { ...s, memberId: null, isPenalty: false, repaidForName: null, unassignedReason: null };
+              return s.memberId ? { ...s } : { ...s, memberId: null, isPenalty: false, unassignedReason: null };
             });
           }
 
           const usedToday = new Set(batteryDutyIds);
+          const usedSquadsToday = {};
+          batteryDutyIds.forEach((id) => {
+            const m = currentMembers.find((x) => x.id === id);
+            if (m) usedSquadsToday[m.squad] = (usedSquadsToday[m.squad] || 0) + 1;
+          });
           slots.forEach((slot) => {
             if (slot.memberId) {
               usedToday.add(slot.memberId);
-              if (!slot.isPenalty && workload[slot.memberId]) {
-                addWorkload(slot.memberId, slot.title, slot.weight, dateStr);
-              } else if (workload[slot.memberId]) {
-                workload[slot.memberId].lastDate = dateStr;
-              }
+              const mem = currentMembers.find((x) => x.id === slot.memberId);
+              if (mem) usedSquadsToday[mem.squad] = (usedSquadsToday[mem.squad] || 0) + 1;
+              if (!slot.isPenalty && workload[slot.memberId]) addWorkload(slot.memberId, slot.title, dateStr);
+              else if (workload[slot.memberId]) workload[slot.memberId].lastDate = dateStr;
             }
           });
 
-          // Роль вчера — для штрафа повтора
           const yesterday = addDaysISO(dateStr, -1);
           const yesterdaySlots = updated[yesterday]?.slots || [];
 
           slots.forEach((slot) => {
             if (slot.memberId) return;
-
             const eligible = currentMembers.filter((m) =>
-              canAssignMember({ member: m, dateStr, usedToday, schedulesMap: updated, protectRestDay })
+              canAssignMember({ member: m, dateStr, usedToday, schedulesMap: updated })
             );
 
             const scored = eligible.map((m) => {
-              const w = workload[m.id] || { score: 0, totalTasks: 0, byTitle: {} };
+              const w = workload[m.id] || { total: 0, byTitle: {} };
               const roleCnt = w.byTitle[slot.title] || 0;
-              const cooldown = w.lastDate && daysDiff(dateStr, w.lastDate) <= 2;
+              const cd = cooldownDays > 0 && w.lastDate && daysDiff(dateStr, w.lastDate) < cooldownDays;
               const hadSameRoleYesterday = yesterdaySlots.some((s) => s.memberId === m.id && s.title === slot.title);
-              const repeatPenalty = hadSameRoleYesterday ? 10 : 0;
+              const repeatPenalty = hadSameRoleYesterday ? 5 : 0;
+              const squadPenalty = (usedSquadsToday[m.squad] || 0) * 3;
 
-              const priority =
-                w.score +
-                w.totalTasks * 0.5 +
-                roleCnt * 2.2 +
-                repeatPenalty +
-                (cooldown ? 1000 : 0);
+              // недельный лимит
+              let weekPenalty = 0;
+              if (maxShiftsPerWeek > 0) {
+                const cur = weekCount[m.id]?.[weekKeyOf(dateStr)] || 0;
+                if (cur >= maxShiftsPerWeek) weekPenalty = 10000;
+              }
 
+              const priority = w.total + roleCnt * 2 + repeatPenalty + squadPenalty + (cd ? 1000 : 0) + weekPenalty;
               return { m, priority, roleCnt };
             });
 
-            // Детерминированная сортировка
             scored.sort((a, b) => {
               if (a.priority !== b.priority) return a.priority - b.priority;
               if (a.roleCnt !== b.roleCnt) return a.roleCnt - b.roleCnt;
@@ -698,172 +711,184 @@
             });
 
             if (scored.length === 0) {
-              slot.unassignedReason = protectRestDay
-                ? 'Нет свободных с учётом отдыха после наряда'
-                : 'Нет свободных бойцов';
+              slot.unassignedReason = 'Нет свободных бойцов';
               return;
             }
 
             const minP = scored[0].priority;
-            const bestPool = scored.filter((x) => Math.abs(x.priority - minP) <= 0.15);
-            let chosen = bestPool[0].m;
-            let repaidForName = null;
-
-            const activeDebt = workingDebts.find(
-              (d) => d.creditorId === chosen.id && d.count > 0 && eligible.some((el) => el.id === d.debtorId)
-            );
-            if (activeDebt) {
-              const debtorMember = getMember(activeDebt.debtorId, currentMembers);
-              if (debtorMember) {
-                repaidForName = chosen.fullName;
-                chosen = debtorMember;
-                activeDebt.count -= 1;
-                autoRepaidCount += 1;
-              }
-            }
-
+            const pool = scored.filter((x) => Math.abs(x.priority - minP) <= 0.5);
+            const chosen = pool[0].m;
             slot.memberId = chosen.id;
-            slot.repaidForName = repaidForName;
             slot.unassignedReason = null;
             usedToday.add(chosen.id);
-            addWorkload(chosen.id, slot.title, slot.weight, dateStr);
+            usedSquadsToday[chosen.squad] = (usedSquadsToday[chosen.squad] || 0) + 1;
+            if (weekCount[chosen.id]) {
+              const wk = weekKeyOf(dateStr);
+              weekCount[chosen.id][wk] = (weekCount[chosen.id][wk] || 0) + 1;
+            }
+            addWorkload(chosen.id, slot.title, dateStr);
           });
 
-          updated[dateStr] = { date: dateStr, batteryDutyIds, slots };
+          updated[dateStr] = { ...(updated[dateStr] || {}), date: dateStr, batteryDutyIds, slots };
         });
 
-        return {
-          updatedSchedules: updated,
-          updatedDebts: workingDebts.filter((d) => d.count > 0),
-          autoRepaidCount,
-        };
+        return { updatedSchedules: updated };
+      };
+
+      const regenerateFromDate = (dateStr, schedulesWithManualChange) => {
+        const lastScheduledDate = Object.keys(schedulesWithManualChange).sort().pop();
+        const fallbackEnd = currentMonthInfo.lastDateISO;
+        const endDate = lastScheduledDate && lastScheduledDate > dateStr ? lastScheduledDate : fallbackEnd;
+        const periodDays = daysDiff(endDate, dateStr) + 1;
+        const { updatedSchedules } = runScheduleGenerator(
+          schedulesWithManualChange, true, dateStr, periodDays, members, taskTemplates
+        );
+        const { errors, emptySlots } = validateSchedule(updatedSchedules, members, cooldownDays);
+        if (errors.length > 0) showToast(`⚠️ Ошибок: ${errors.length}`);
+        else if (emptySlots > 0) showToast(`График пересчитан. Свободных: ${emptySlots}`);
+        else showToast('✅ Всё заполнено');
+        return updatedSchedules;
       };
 
       const reportGenerationResult = (updatedSchedules) => {
-        const { errors, emptySlots } = validateSchedule(updatedSchedules, members);
-        if (errors.length > 0) {
-          showToast(`⚠️ Ошибок в графике: ${errors.length}. См. «Журнал».`);
-          console.warn('Schedule errors:', errors);
-        } else if (emptySlots > 0) {
-          showToast(`График создан. Осталось свободных задач: ${emptySlots}`);
-        } else {
-          showToast('✅ График полностью заполнен, ошибок нет');
-        }
+        const { errors, emptySlots } = validateSchedule(updatedSchedules, members, cooldownDays);
+        if (errors.length > 0) showToast(`⚠️ Ошибок: ${errors.length}`);
+        else if (emptySlots > 0) showToast(`Свободных задач: ${emptySlots}`);
+        else showToast('✅ Всё заполнено');
       };
 
       const fillEmptyDaysInMonth = () => {
         if (!isUserAdmin) return;
         haptic('medium');
+        const before = schedules;
         const { nextLogs, nextBackups } = createLogAndBackup(
           '⚡ Заполнение месяца', `Заполнены пустые дни за ${currentMonthInfo.monthTitle}`, true, 'RECALC'
         );
-        const { updatedSchedules, updatedDebts } = runScheduleGenerator(
-          schedules, true, currentMonthInfo.firstDateISO, currentMonthInfo.daysInMonth,
-          members, taskTemplates, debts
+        const { updatedSchedules } = runScheduleGenerator(
+          schedules, true, currentMonthInfo.firstDateISO, currentMonthInfo.daysInMonth, members, taskTemplates
         );
+        setLastUndo({ schedules: before, label: 'Заполнение месяца' });
         setSchedules(updatedSchedules);
-        setDebts(updatedDebts);
-        pushToCloudNow({ schedules: updatedSchedules, debts: updatedDebts, logs: nextLogs, backups: nextBackups });
+        pushToCloudNow({ schedules: updatedSchedules, logs: nextLogs, backups: nextBackups });
         reportGenerationResult(updatedSchedules);
       };
 
-      const executeRecalculate = (onlyFromToday) => {
+      const executeRecalculateRange = (fromISO, toISO_, resetAll) => {
         if (!isUserAdmin) return;
         haptic('medium');
-        let startISO = currentMonthInfo.firstDateISO;
-        let countDays = currentMonthInfo.daysInMonth;
-        if (onlyFromToday && todayISO >= currentMonthInfo.firstDateISO && todayISO <= currentMonthInfo.lastDateISO) {
-          startISO = todayISO;
-          countDays = daysDiff(currentMonthInfo.lastDateISO, todayISO) + 1;
-        }
+        const days = daysDiff(toISO_, fromISO) + 1;
+        const before = schedules;
         const { nextLogs, nextBackups } = createLogAndBackup(
-          '🔄 Пересчет графика', `Период с ${startISO} (${countDays} дн.). Прошедшие дни сохранены.`, true, 'RECALC'
+          '🔄 Пересчет диапазона', `${fromISO}…${toISO_} (${days} дн.), режим: ${resetAll ? 'сброс' : 'дозаполнение'}`, true, 'RECALC'
         );
-        const { updatedSchedules, updatedDebts } = runScheduleGenerator(
-          schedules, false, startISO, countDays, members, taskTemplates, debts
+        const { updatedSchedules } = runScheduleGenerator(
+          schedules, !resetAll, fromISO, days, members, taskTemplates
         );
+        setLastUndo({ schedules: before, label: 'Пересчет' });
         setSchedules(updatedSchedules);
-        setDebts(updatedDebts);
-        pushToCloudNow({ schedules: updatedSchedules, debts: updatedDebts, logs: nextLogs, backups: nextBackups });
+        pushToCloudNow({ schedules: updatedSchedules, logs: nextLogs, backups: nextBackups });
         setRecalcModalOpen(false);
+        setRecalcConfirm(null);
         reportGenerationResult(updatedSchedules);
+      };
+
+      // ==== ОТМЕНА ====
+      const undoLastAction = () => {
+        if (!lastUndo || !isUserAdmin) return;
+        haptic('medium');
+        setSchedules(lastUndo.schedules);
+        pushToCloudNow({ schedules: lastUndo.schedules });
+        showToast('↩ Отменено');
+        setLastUndo(null);
+      };
+
+      // ==== ПОДТВЕРЖДЕНИЯ ====
+      const askConfirmDeleteSlot = (dateStr, slotObj) => {
+        if (!isUserAdmin) return;
+        setConfirmDialog({
+          title: '🗑 Удалить задачу?',
+          message: `Удалить «${slotObj.title}» (${getName(slotObj.memberId)}) из ${formatRuDate(dateStr)}?`,
+          confirmLabel: 'Удалить',
+          onConfirm: () => {
+            haptic('medium');
+            const before = schedules;
+            const nextSchedules = {
+              ...schedules,
+              [dateStr]: {
+                ...schedules[dateStr],
+                slots: (schedules[dateStr]?.slots || []).filter((s) => s.id !== slotObj.id),
+              },
+            };
+            const { nextLogs, nextBackups } = createLogAndBackup(
+              '🗑 Удалена задача', `${formatRuDate(dateStr)}: «${slotObj.title}» (${getName(slotObj.memberId)})`, true, 'ASSIGNMENT'
+            );
+            const recalculated = regenerateFromDate(dateStr, nextSchedules);
+            setLastUndo({ schedules: before, label: 'Удаление задачи' });
+            setSchedules(recalculated);
+            pushToCloudNow({ schedules: recalculated, logs: nextLogs, backups: nextBackups });
+            setConfirmDialog(null);
+            if (modalSlot) setModalSlot(null);
+            showToast('Удалено', true);
+          },
+        });
       };
 
       const askConfirmClearDay = (dateStr) => {
         if (!isUserAdmin) return;
         setConfirmDialog({
           title: `🗑 Очистить сутки ${formatRuDate(dateStr)}?`,
-          message: `Все задачи по классу и суточные наряды на ${dateStr} будут сняты. Остальные дни не изменятся.`,
-          confirmLabel: 'Да, очистить сутки',
+          message: `Все задачи и наряды на ${dateStr} будут сняты.`,
+          confirmLabel: 'Да, очистить',
           onConfirm: () => {
             haptic('medium');
-            const { nextLogs, nextBackups } = createLogAndBackup(
-              '🗑 Очистка суток', `Очищены все задачи на ${formatRuDate(dateStr)} (${dateStr})`, true, 'CLEAR'
-            );
+            const before = schedules;
             const nextSchedules = { ...schedules, [dateStr]: { date: dateStr, batteryDutyIds: [], slots: [] } };
-            setSchedules(nextSchedules);
-            pushToCloudNow({ schedules: nextSchedules, logs: nextLogs, backups: nextBackups });
+            const { nextLogs, nextBackups } = createLogAndBackup('🗑 Очистка суток', `${formatRuDate(dateStr)}`, true, 'CLEAR');
+            const recalculated = regenerateFromDate(dateStr, nextSchedules);
+            setLastUndo({ schedules: before, label: 'Очистка суток' });
+            setSchedules(recalculated);
+            pushToCloudNow({ schedules: recalculated, logs: nextLogs, backups: nextBackups });
             setConfirmDialog(null);
-            showToast(`Сутки ${formatRuDate(dateStr)} очищены`);
+            showToast('Сутки очищены', true);
           },
         });
+      };
+
+      const applyManualChangeAndCascade = (dateStr, nextSchedules, logTitle, logDetails, type = 'ASSIGNMENT') => {
+        const before = schedules;
+        const { nextLogs, nextBackups } = createLogAndBackup(logTitle, logDetails, true, type);
+        const recalculated = regenerateFromDate(dateStr, nextSchedules);
+        setLastUndo({ schedules: before, label: logTitle });
+        setSchedules(recalculated);
+        pushToCloudNow({ schedules: recalculated, logs: nextLogs, backups: nextBackups });
       };
 
       const handleAssignMember = (newMemberId) => {
         if (!isUserAdmin || !modalSlot) return;
         haptic('light');
         const { date, slot } = modalSlot;
-        const oldMemberId = slot.memberId;
-        const oldName = getName(oldMemberId);
+        const oldName = getName(slot.memberId);
         const newName = getName(newMemberId);
         const isPenalty = assignMode === 'PENALTY';
-        const isDebtCover = assignMode === 'DEBT_COVER';
-        let repaidLabel = null;
-        let nextDebts = [...debts];
-
-        if (isDebtCover && oldMemberId && oldMemberId !== newMemberId) {
-          const reverseIdx = nextDebts.findIndex((d) => d.debtorId === newMemberId && d.creditorId === oldMemberId && d.count > 0);
-          if (reverseIdx !== -1) {
-            nextDebts[reverseIdx] = { ...nextDebts[reverseIdx], count: nextDebts[reverseIdx].count - 1 };
-            nextDebts = nextDebts.filter((d) => d.count > 0);
-          } else {
-            const existIdx = nextDebts.findIndex((d) => d.debtorId === oldMemberId && d.creditorId === newMemberId);
-            if (existIdx !== -1) {
-              nextDebts[existIdx] = { ...nextDebts[existIdx], count: nextDebts[existIdx].count + 1, lastReason: `${formatRuDate(date)} (${slot.title})` };
-            } else {
-              nextDebts.push({
-                id: `debt_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
-                debtorId: oldMemberId, creditorId: newMemberId, count: 1,
-                lastReason: `${formatRuDate(date)} (${slot.title})`,
-              });
-            }
-          }
-          repaidLabel = `Подмена за ${getMember(oldMemberId)?.fullName}`;
-        }
-
         const nextSchedules = {
           ...schedules,
           [date]: {
             ...schedules[date],
             slots: (schedules[date]?.slots || []).map((s) =>
               s.id === slot.id
-                ? { ...s, memberId: newMemberId, isPenalty, isManual: true, repaidForName: repaidLabel, unassignedReason: null }
+                ? { ...s, memberId: newMemberId, isPenalty, isManual: true, locked: true, unassignedReason: null }
                 : s
             ),
           },
         };
-
-        const { nextLogs, nextBackups } = createLogAndBackup(
-          isDebtCover ? '🤝 Подмена в долг' : isPenalty ? '⚠ Штрафной наряд' : '🔄 Замена в смене',
-          `${formatRuDate(date)} [${slot.title}]: ${oldName} → ${newName}`, true,
-          isDebtCover ? 'DEBT' : isPenalty ? 'PENALTY' : 'ASSIGNMENT'
+        applyManualChangeAndCascade(
+          date, nextSchedules,
+          isPenalty ? '⚠ Штрафной наряд' : '🔄 Замена',
+          `${formatRuDate(date)} [${slot.title}]: ${oldName} → ${newName}`,
+          isPenalty ? 'PENALTY' : 'ASSIGNMENT'
         );
-
-        setSchedules(nextSchedules);
-        setDebts(nextDebts);
-        pushToCloudNow({ schedules: nextSchedules, debts: nextDebts, logs: nextLogs, backups: nextBackups });
         setModalSlot(null);
-        showToast(`✅ Замена: ${newName}`);
+        showToast(`✅ ${newName}`, true);
       };
 
       const clearSlotAssignment = (dateStr, slotObj, e) => {
@@ -876,59 +901,16 @@
             ...schedules[dateStr],
             slots: (schedules[dateStr]?.slots || []).map((s) =>
               s.id === slotObj.id
-                ? { ...s, memberId: null, isManual: false, isPenalty: false, repaidForName: null, unassignedReason: null }
+                ? { ...s, memberId: null, isManual: false, isPenalty: false, locked: false, unassignedReason: null }
                 : s
             ),
           },
         };
-        const { nextLogs } = createLogAndBackup(
-          '🧹 Снят боец', `${formatRuDate(dateStr)} [${slotObj.title}]: ${getName(slotObj.memberId)} снят`, false, 'ASSIGNMENT'
+        applyManualChangeAndCascade(
+          dateStr, nextSchedules,
+          '🧹 Снят боец', `${formatRuDate(dateStr)} [${slotObj.title}]`, 'ASSIGNMENT'
         );
-        setSchedules(nextSchedules);
-        pushToCloudNow({ schedules: nextSchedules, logs: nextLogs });
-        showToast('Боец снят с задачи');
-      };
-
-      const replaceWithRandomLeastLoaded = (dateStr, slotObj, e) => {
-        if (e) e.stopPropagation();
-        if (!isUserAdmin) return;
-        haptic('medium');
-        const day = schedules[dateStr];
-        if (!day) return;
-        const usedToday = new Set([
-          ...(day.batteryDutyIds || []),
-          ...(day.slots || []).map((s) => s.memberId).filter(Boolean),
-        ]);
-        const eligible = members.filter(
-          (m) => m.status === 'ACTIVE' && !usedToday.has(m.id) &&
-            m.id !== slotObj.memberId && !isRecoveringFromBatteryDuty(m.id, dateStr)
-        );
-        if (eligible.length === 0) { showToast('Нет свободных бойцов на этот день!'); return; }
-
-        const sorted = eligible.map((m) => ({ m, score: statsMap[m.id]?.score || 0 })).sort((a, b) => a.score - b.score);
-        const minScore = sorted[0].score;
-        let pool = sorted.filter((x) => x.score <= minScore + 1.2);
-        if (pool.length < 3) pool = sorted.slice(0, Math.min(4, sorted.length));
-        const chosen = pool[Math.floor(Math.random() * pool.length)].m;
-        const oldName = getName(slotObj.memberId);
-        const newName = getName(chosen.id);
-
-        const nextSchedules = {
-          ...schedules,
-          [dateStr]: {
-            ...schedules[dateStr],
-            slots: schedules[dateStr].slots.map((s) =>
-              s.id === slotObj.id ? { ...s, memberId: chosen.id, isManual: true, repaidForName: null, unassignedReason: null } : s
-            ),
-          },
-        };
-        const { nextLogs, nextBackups } = createLogAndBackup(
-          '🎲 Случайная замена', `${formatRuDate(dateStr)} [${slotObj.title}]: ${oldName} → ${newName}`, true, 'ASSIGNMENT'
-        );
-        setSchedules(nextSchedules);
-        pushToCloudNow({ schedules: nextSchedules, logs: nextLogs, backups: nextBackups });
-        showToast(`🎲 Выбран: ${chosen.fullName}`);
-        if (modalSlot) setModalSlot(null);
+        showToast('Снято', true);
       };
 
       const replaceWithBestCandidate = (dateStr, slotObj, e) => {
@@ -942,27 +924,66 @@
           ...(day.slots || []).filter((s) => s.id !== slotObj.id).map((s) => s.memberId).filter(Boolean),
         ]);
         const best = members
-          .filter((m) => m.status === 'ACTIVE' && !usedToday.has(m.id) && !isRecoveringFromBatteryDuty(m.id, dateStr))
-          .sort((a, b) => (statsMap[a.id]?.score || 0) - (statsMap[b.id]?.score || 0))[0];
+          .filter((m) => m.status === 'ACTIVE' && !inAbsence(m, dateStr) && !usedToday.has(m.id) && !isRecoveringFromBatteryDuty(m.id, dateStr))
+          .sort((a, b) => (statsMap[a.id]?.totalAll || 0) - (statsMap[b.id]?.totalAll || 0))[0];
         if (!best) { showToast('Кандидат не найден'); return; }
-
-        const oldName = getName(slotObj.memberId);
         const nextSchedules = {
           ...schedules,
           [dateStr]: {
             ...schedules[dateStr],
             slots: schedules[dateStr].slots.map((s) =>
-              s.id === slotObj.id ? { ...s, memberId: best.id, isManual: true, repaidForName: null, unassignedReason: null } : s
+              s.id === slotObj.id ? { ...s, memberId: best.id, isManual: true, locked: true, unassignedReason: null } : s
             ),
           },
         };
-        const { nextLogs, nextBackups } = createLogAndBackup(
-          '⭐ Лучший кандидат', `${formatRuDate(dateStr)} [${slotObj.title}]: ${oldName} → ${best.fullName}`, true, 'ASSIGNMENT'
+        applyManualChangeAndCascade(
+          dateStr, nextSchedules,
+          '⭐ Лучший кандидат',
+          `${formatRuDate(dateStr)} [${slotObj.title}]: ${getName(slotObj.memberId)} → ${best.fullName}`,
+          'ASSIGNMENT'
         );
-        setSchedules(nextSchedules);
-        pushToCloudNow({ schedules: nextSchedules, logs: nextLogs, backups: nextBackups });
-        showToast(`⭐ Назначен: ${best.fullName}`);
         if (modalSlot) setModalSlot(null);
+        showToast(`⭐ ${best.fullName}`, true);
+      };
+
+      const replaceWithRandomLeastLoaded = (dateStr, slotObj, e) => {
+        if (e) e.stopPropagation();
+        if (!isUserAdmin) return;
+        haptic('medium');
+        const day = schedules[dateStr];
+        if (!day) return;
+        const usedToday = new Set([
+          ...(day.batteryDutyIds || []),
+          ...(day.slots || []).map((s) => s.memberId).filter(Boolean),
+        ]);
+        const eligible = members.filter(
+          (m) => m.status === 'ACTIVE' && !inAbsence(m, dateStr) && !usedToday.has(m.id) &&
+            m.id !== slotObj.memberId && !isRecoveringFromBatteryDuty(m.id, dateStr)
+        );
+        if (eligible.length === 0) { showToast('Нет свободных'); return; }
+        const sorted = eligible.map((m) => ({ m, count: statsMap[m.id]?.totalAll || 0 })).sort((a, b) => a.count - b.count);
+        const minCount = sorted[0].count;
+        let pool = sorted.filter((x) => x.count <= minCount + 1);
+        if (pool.length < 3) pool = sorted.slice(0, Math.min(4, sorted.length));
+        const chosen = pool[Math.floor(Math.random() * pool.length)].m;
+
+        const nextSchedules = {
+          ...schedules,
+          [dateStr]: {
+            ...schedules[dateStr],
+            slots: schedules[dateStr].slots.map((s) =>
+              s.id === slotObj.id ? { ...s, memberId: chosen.id, isManual: true, locked: true, unassignedReason: null } : s
+            ),
+          },
+        };
+        applyManualChangeAndCascade(
+          dateStr, nextSchedules,
+          '🎲 Случайная замена',
+          `${formatRuDate(dateStr)} [${slotObj.title}]: ${getName(slotObj.memberId)} → ${chosen.fullName}`,
+          'ASSIGNMENT'
+        );
+        if (modalSlot) setModalSlot(null);
+        showToast(`🎲 ${chosen.fullName}`, true);
       };
 
       const toggleBatteryDutyMember = (dateStr, memberId) => {
@@ -986,20 +1007,20 @@
             targetDay.slots = targetDay.slots.map((slot) => {
               if (slot.memberId !== memberId) return slot;
               const replacement = members
-                .filter((m) => m.status === 'ACTIVE' && !busy.has(m.id) && !isRecoveringFromBatteryDuty(m.id, dKey, updatedSchedules))
-                .sort((a, b) => (statsMap[a.id]?.score || 0) - (statsMap[b.id]?.score || 0))[0];
+                .filter((m) => m.status === 'ACTIVE' && !inAbsence(m, dKey) && !busy.has(m.id) && !isRecoveringFromBatteryDuty(m.id, dKey, updatedSchedules))
+                .sort((a, b) => (statsMap[a.id]?.totalAll || 0) - (statsMap[b.id]?.totalAll || 0))[0];
               if (replacement) { busy.add(replacement.id); return { ...slot, memberId: replacement.id, isManual: true }; }
               return { ...slot, memberId: null };
             });
           });
         }
 
-        const { nextLogs, nextBackups } = createLogAndBackup(
+        applyManualChangeAndCascade(
+          dateStr, updatedSchedules,
           '🛡️ Наряд по батарее',
-          `${formatRuDate(dateStr)}: ${getName(memberId)} (${exists ? 'снят' : 'назначен'})`, true, 'BATTERY'
+          `${formatRuDate(dateStr)}: ${getName(memberId)} (${exists ? 'снят' : 'назначен'})`,
+          'BATTERY'
         );
-        setSchedules(updatedSchedules);
-        pushToCloudNow({ schedules: updatedSchedules, logs: nextLogs, backups: nextBackups });
       };
 
       const handleAddCustomSlotToDay = (e) => {
@@ -1011,59 +1032,127 @@
           ...(day.slots || []).map((s) => s.memberId).filter(Boolean),
         ]);
         const eligible = members
-          .filter((m) => m.status === 'ACTIVE' && !usedToday.has(m.id) && !isRecoveringFromBatteryDuty(m.id, addSlotDate))
-          .sort((a, b) => (statsMap[a.id]?.score || 0) - (statsMap[b.id]?.score || 0));
+          .filter((m) => m.status === 'ACTIVE' && !inAbsence(m, addSlotDate) && !usedToday.has(m.id) && !isRecoveringFromBatteryDuty(m.id, addSlotDate))
+          .sort((a, b) => (statsMap[a.id]?.totalAll || 0) - (statsMap[b.id]?.totalAll || 0));
         const chosen = eligible[0] || null;
         const newSlot = {
           id: `${addSlotDate}_custom_${Date.now()}`,
-          date: addSlotDate,
-          title: customSlotTitle.trim(),
-          weight: Number(customSlotWeight) || 1.0,
+          date: addSlotDate, title: customSlotTitle.trim(),
           memberId: chosen ? chosen.id : null,
-          isPenalty: false, isManual: true, repaidForName: null, unassignedReason: null,
+          isPenalty: false, isManual: true, locked: !!chosen, unassignedReason: null,
         };
         const nextSchedules = {
           ...schedules,
           [addSlotDate]: { ...day, slots: [...(day.slots || []), newSlot] },
         };
-        const { nextLogs } = createLogAndBackup(
+        applyManualChangeAndCascade(
+          addSlotDate, nextSchedules,
           '➕ Добавлена задача',
-          `${formatRuDate(addSlotDate)}: «${newSlot.title}» → ${chosen ? getName(chosen.id) : '—'}`, false, 'ASSIGNMENT'
+          `${formatRuDate(addSlotDate)}: «${newSlot.title}» → ${chosen ? getName(chosen.id) : '—'}`,
+          'ASSIGNMENT'
         );
-        setSchedules(nextSchedules);
-        pushToCloudNow({ schedules: nextSchedules, logs: nextLogs });
         setCustomSlotTitle('');
         setAddSlotDate(null);
-        showToast('Задача добавлена');
+        showToast('Добавлено', true);
       };
 
-      const handleDeleteSlotFromDay = (dateStr, slotObj, e) => {
-        if (e) e.stopPropagation();
+      const copyDayStructure = (fromDate) => {
         if (!isUserAdmin) return;
-        const nextSchedules = {
-          ...schedules,
-          [dateStr]: {
-            ...schedules[dateStr],
-            slots: (schedules[dateStr]?.slots || []).filter((s) => s.id !== slotObj.id),
-          },
-        };
-        const { nextLogs, nextBackups } = createLogAndBackup(
-          '🗑 Удалена задача', `${formatRuDate(dateStr)}: «${slotObj.title}» (${getName(slotObj.memberId)})`, true, 'ASSIGNMENT'
-        );
+        const fromDay = schedules[fromDate] || { slots: [] };
+        if (!fromDay.slots?.length) { showToast('Нет структуры для копирования'); return; }
+        setCopyModalDate(fromDate);
+        setCopyRange({ from: addDaysISO(fromDate, 1), to: addDaysISO(fromDate, 6) });
+      };
+
+      const applyCopyDayStructure = () => {
+        if (!copyModalDate || !copyRange.from || !copyRange.to) return;
+        const fromDay = schedules[copyModalDate] || { slots: [] };
+        const nextSchedules = { ...schedules };
+        let cursor = copyRange.from;
+        const guard = 400;
+        let i = 0;
+        while (cursor <= copyRange.to && i < guard) {
+          const existing = nextSchedules[cursor] || { date: cursor, batteryDutyIds: [], slots: [] };
+          const templateSlots = fromDay.slots.map((s, idx) => ({
+            id: `${cursor}_copy_${idx}_${Math.random().toString(36).slice(2, 5)}`,
+            date: cursor, title: s.title,
+            memberId: null, isPenalty: false, isManual: false, locked: false, unassignedReason: null,
+          }));
+          nextSchedules[cursor] = { ...existing, date: cursor, slots: templateSlots };
+          cursor = addDaysISO(cursor, 1);
+          i++;
+        }
+        const { nextLogs } = createLogAndBackup('📋 Копирование структуры', `${copyModalDate} → ${copyRange.from}…${copyRange.to}`, false, 'ASSIGNMENT');
         setSchedules(nextSchedules);
-        pushToCloudNow({ schedules: nextSchedules, logs: nextLogs, backups: nextBackups });
-        showToast('Задача удалена');
-        if (modalSlot) setModalSlot(null);
+        pushToCloudNow({ schedules: nextSchedules, logs: nextLogs });
+        setCopyModalDate(null);
+        showToast('Структура скопирована');
+      };
+
+      const saveDayNote = () => {
+        if (!noteModalDate) return;
+        const day = schedules[noteModalDate] || { date: noteModalDate, batteryDutyIds: [], slots: [] };
+        const nextSchedules = { ...schedules, [noteModalDate]: { ...day, note: noteText.trim() || null } };
+        const { nextLogs } = createLogAndBackup('📝 Заметка', `${formatRuDate(noteModalDate)}: ${noteText.slice(0, 40)}`, false, 'OTHER');
+        setSchedules(nextSchedules);
+        pushToCloudNow({ schedules: nextSchedules, logs: nextLogs });
+        setNoteModalDate(null);
+        showToast('Заметка сохранена');
+      };
+
+      const addAbsence = () => {
+        if (!absenceModalMember || !absenceForm.from || !absenceForm.to) return;
+        const nextMembers = members.map((m) =>
+          m.id === absenceModalMember.id
+            ? { ...m, absences: [...(m.absences || []), { ...absenceForm }] }
+            : m
+        );
+        const { nextLogs } = createLogAndBackup('🚫 Отсутствие', `${absenceModalMember.fullName}: ${absenceForm.from}…${absenceForm.to}`, false, 'STATUS');
+        setMembers(nextMembers);
+        pushToCloudNow({ members: nextMembers, logs: nextLogs });
+        setAbsenceModalMember(null);
+        setAbsenceForm({ from: '', to: '', reason: '' });
+        showToast('Отсутствие добавлено');
+      };
+
+      const removeAbsence = (memberId, idx) => {
+        const nextMembers = members.map((m) =>
+          m.id === memberId ? { ...m, absences: (m.absences || []).filter((_, i) => i !== idx) } : m
+        );
+        setMembers(nextMembers);
+        pushToCloudNow({ members: nextMembers });
+        showToast('Удалено');
+      };
+
+      const resetAllData = () => {
+        if (!isUserAdmin) return;
+        setConfirmDialog({
+          title: '⚠ Сбросить всё?',
+          message: 'Будет создан бэкап, затем очищены график, заметки и журнал. Шаблоны и бойцы сохранятся.',
+          confirmLabel: 'Сбросить',
+          onConfirm: () => {
+            const snap = {
+              id: `bk_${Date.now()}`, time: new Date().toLocaleString('ru-RU'), type: 'RESET',
+              label: 'Снимок перед сбросом', schedules: JSON.parse(JSON.stringify(schedules)), members: JSON.parse(JSON.stringify(members)),
+            };
+            const nextBackups = [snap, ...backups.slice(0, 19)];
+            const emptySchedules = {};
+            setSchedules(emptySchedules);
+            setBackups(nextBackups);
+            pushToCloudNow({ schedules: emptySchedules, backups: nextBackups });
+            setConfirmDialog(null);
+            showToast('Сброшено. Бэкап сохранён.');
+          },
+        });
       };
 
       const getAssignmentWarnings = (dateStr, memberId) => {
         const w = [];
         const m = getMember(memberId);
         if (!m || m.status !== 'ACTIVE') w.push('Не в строю');
-        if (schedules[dateStr]?.batteryDutyIds?.includes(memberId)) w.push('Уже в наряде по батарее');
-        if (schedules[dateStr]?.slots?.some((s) => s.memberId === memberId && (!modalSlot || s.id !== modalSlot.slot.id))) {
-          w.push('Уже назначен на задачу');
-        }
+        if (m && inAbsence(m, dateStr)) w.push('Отсутствует');
+        if (schedules[dateStr]?.batteryDutyIds?.includes(memberId)) w.push('Уже в наряде');
+        if (schedules[dateStr]?.slots?.some((s) => s.memberId === memberId && (!modalSlot || s.id !== modalSlot.slot.id))) w.push('Уже назначен');
         if (isRecoveringFromBatteryDuty(memberId, dateStr)) w.push('Отдыхает после наряда');
         return w;
       };
@@ -1071,52 +1160,40 @@
       const runBuiltInUnitTests = () => {
         const results = [];
         try {
-          const r1 = runScheduleGenerator({}, false, '2026-10-01', 14, INITIAL_MEMBERS, INITIAL_TEMPLATES, []);
+          const r1 = runScheduleGenerator({}, false, '2026-10-01', 14, INITIAL_MEMBERS, INITIAL_TEMPLATES);
           const counts1 = {};
           INITIAL_MEMBERS.forEach((m) => (counts1[m.id] = 0));
           Object.values(r1.updatedSchedules).forEach((d) =>
-            d.slots.forEach((s) => { if (s.memberId) counts1[s.memberId] += s.weight; })
+            d.slots.forEach((s) => { if (s.memberId) counts1[s.memberId] += 1; })
           );
-          const vals1 = Object.values(counts1);
-          const spread1 = Math.max(...vals1) - Math.min(...vals1);
-          results.push({
-            name: '1. Равномерность очереди (23 чел. / 14 дней)',
-            passed: spread1 <= 2.4,
-            detail: `Макс. разброс: ${spread1.toFixed(1)} б. (норма ≤ 2.4)`,
-          });
+          const vals = Object.values(counts1);
+          const spread = Math.max(...vals) - Math.min(...vals);
+          results.push({ name: '1. Равномерность 23/14', passed: spread <= 2, detail: `Разброс: ${spread}` });
 
-          const manualSeed = {
-            '2026-10-01': { date: '2026-10-01', batteryDutyIds: [], slots: [{ id: 's1', date: '2026-10-01', title: 'Дежурный по классу', weight: 1.2, memberId: 'm01', isManual: true, isPenalty: false }] },
-            '2026-10-02': { date: '2026-10-02', batteryDutyIds: [], slots: [{ id: 's2', date: '2026-10-02', title: 'Дежурный по классу', weight: 1.2, memberId: 'm01', isManual: true, isPenalty: false }] },
-          };
-          const r2 = runScheduleGenerator(manualSeed, true, '2026-10-01', 10, INITIAL_MEMBERS, INITIAL_TEMPLATES, []);
-          let extra = 0;
-          for (let d = 3; d <= 10; d++) {
-            const iso = `2026-10-${String(d).padStart(2, '0')}`;
-            r2.updatedSchedules[iso].slots.forEach((s) => { if (s.memberId === 'm01') extra++; });
-          }
-          results.push({
-            name: '2. Учёт переработки после ручных замен',
-            passed: extra === 0,
-            detail: `Доп. смен у перегруженного: ${extra} (ожидалось 0)`,
-          });
+          const allSick = INITIAL_MEMBERS.map((m) => ({ ...m, status: 'SICK' }));
+          const rSick = runScheduleGenerator({}, false, '2026-10-01', 5, allSick, INITIAL_TEMPLATES);
+          const hasAssign = Object.values(rSick.updatedSchedules).some((d) => d.slots.some((s) => s.memberId));
+          results.push({ name: '2. Все больны → пусто', passed: !hasAssign, detail: `Назначено: ${hasAssign ? 'да' : 'нет'}` });
+
+          const oneMember = [{ id: 'x1', fullName: 'Один', squad: 1, status: 'ACTIVE', absences: [] }];
+          const rOne = runScheduleGenerator({}, false, '2026-10-01', 3, oneMember, INITIAL_TEMPLATES);
+          const valid = validateSchedule(rOne.updatedSchedules, oneMember, 2);
+          results.push({ name: '3. 1 боец, нет двойных', passed: valid.errors.length === 0, detail: `Ошибок: ${valid.errors.length}` });
+
+          const withAbsence = [{ ...INITIAL_MEMBERS[0], absences: [{ from: '2026-10-01', to: '2026-10-05', reason: 'тест' }] }, ...INITIAL_MEMBERS.slice(1)];
+          const rAbs = runScheduleGenerator({}, false, '2026-10-01', 5, withAbsence, INITIAL_TEMPLATES);
+          const inAbs = Object.values(rAbs.updatedSchedules).some((d) => d.slots.some((s) => s.memberId === INITIAL_MEMBERS[0].id));
+          results.push({ name: '4. Отсутствие соблюдается', passed: !inAbs, detail: `Назначен: ${inAbs ? 'да' : 'нет'}` });
 
           const batSeed = { '2026-10-05': { date: '2026-10-05', batteryDutyIds: ['m05'], slots: [] } };
-          const r3 = runScheduleGenerator(batSeed, true, '2026-10-05', 3, INITIAL_MEMBERS, INITIAL_TEMPLATES, []);
-          const onD = r3.updatedSchedules['2026-10-05'].slots.some((s) => s.memberId === 'm05');
-          const onD1 = r3.updatedSchedules['2026-10-06'].slots.some((s) => s.memberId === 'm05');
-          results.push({
-            name: '3. Защита наряда D и D+1',
-            passed: !onD && !onD1,
-            detail: `В день наряда: ${onD ? 'Да' : 'Нет'}, на сдаче: ${onD1 ? 'Да' : 'Нет'}`,
-          });
+          const rBat = runScheduleGenerator(batSeed, true, '2026-10-05', 3, INITIAL_MEMBERS, INITIAL_TEMPLATES);
+          const onD = rBat.updatedSchedules['2026-10-05'].slots.some((s) => s.memberId === 'm05');
+          const onD1 = rBat.updatedSchedules['2026-10-06'].slots.some((s) => s.memberId === 'm05');
+          results.push({ name: '5. Защита D и D+1', passed: !onD && !onD1, detail: `D: ${onD ? 'да' : 'нет'}, D+1: ${onD1 ? 'да' : 'нет'}` });
 
-          const validation = validateSchedule(r1.updatedSchedules, INITIAL_MEMBERS);
-          results.push({
-            name: '4. Валидатор: нет двойных назначений',
-            passed: validation.errors.length === 0,
-            detail: `Ошибок: ${validation.errors.length}, пустых слотов: ${validation.emptySlots}`,
-          });
+          const rMany = runScheduleGenerator({}, false, '2026-10-01', 10, INITIAL_MEMBERS, INITIAL_TEMPLATES);
+          const vMany = validateSchedule(rMany.updatedSchedules, INITIAL_MEMBERS, 2);
+          results.push({ name: '6. Валидатор на 10 днях', passed: vMany.errors.length === 0, detail: `Ошибок: ${vMany.errors.length}` });
         } catch (err) {
           results.push({ name: 'Ошибка тестов', passed: false, detail: String(err) });
         }
@@ -1128,14 +1205,28 @@
         return datesToShow.map((iso) => schedules[iso] || { date: iso, batteryDutyIds: [], slots: [] });
       }, [schedules, currentMonthInfo, dayFilterMode, selectedDayISO]);
 
-      const totalActiveDebts = debts.reduce((acc, d) => acc + d.count, 0);
+      const todayDay = schedules[todayISO] || { date: todayISO, batteryDutyIds: [], slots: [] };
+      const tomorrowDay = schedules[tomorrowISO] || { date: tomorrowISO, batteryDutyIds: [], slots: [] };
 
       return (
         <div className={darkMode ? 'dark' : ''}>
-          <div className="max-w-md mx-auto min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 safe-bottom relative shadow-xl transition-colors">
+          <div className="max-w-md mx-auto min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 safe-bottom relative shadow-xl transition-colors duration-200">
             {toast && (
-              <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 dark:bg-indigo-600 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-lg whitespace-nowrap max-w-[90vw] truncate">
-                {toast}
+              <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 dark:bg-indigo-600 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-lg whitespace-nowrap max-w-[92vw] flex items-center gap-2">
+                <span className="truncate">{toast}</span>
+                {lastUndo && (
+                  <button onClick={undoLastAction} className="bg-white/20 px-2 py-1 rounded-lg shrink-0">↩ Отменить</button>
+                )}
+              </div>
+            )}
+
+            {/* Плашка «не синхронизировано» */}
+            {pendingSync && (
+              <div
+                onClick={() => pushToCloudNow()}
+                className="fixed top-14 left-1/2 -translate-x-1/2 z-40 bg-rose-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg cursor-pointer fade-in"
+              >
+                ⚠ Изменения не сохранены в облако. Нажмите, чтобы повторить.
               </div>
             )}
 
@@ -1149,15 +1240,18 @@
                       <span className="text-[10px] bg-amber-400 text-slate-950 px-1.5 py-0.5 rounded font-extrabold">👑 Редактор</span>
                     ) : (
                       <button onClick={unlockAdminAccess} className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded font-semibold underline">
-                        👁 Просмотр (Войти)
+                        👁 Просмотр
                       </button>
                     )}
                   </div>
                   <p className="text-[10px] text-indigo-200 dark:text-slate-400 mt-0.5">{cloudStatus}</p>
                 </div>
-                <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-xl bg-white/15 text-xs" title="Тема">
-                  {darkMode ? '☀️' : '🌙'}
-                </button>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setSearchOpen(true)} className="p-2 rounded-xl bg-white/15 text-xs" title="Поиск">🔍</button>
+                  <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-xl bg-white/15 text-xs" title="Тема">
+                    {darkMode ? '☀️' : '🌙'}
+                  </button>
+                </div>
               </div>
               <div className="mt-2.5 pt-2 border-t border-white/15 flex items-center justify-between text-[11px]">
                 <div className="flex items-center gap-2">
@@ -1168,26 +1262,68 @@
                     : 'bg-rose-400 text-white'}`}>
                     {fairnessMetrics.index}%
                   </span>
+                  {monthHoleCount > 0 && (
+                    <span className="bg-rose-500 text-white px-1.5 py-0.2 rounded font-extrabold">
+                      🕳 {monthHoleCount}
+                    </span>
+                  )}
                 </div>
                 <span className="text-indigo-200 font-mono text-[10px]">
-                  {fairnessMetrics.min.toFixed(1)}–{fairnessMetrics.max.toFixed(1)} б. (σ={fairnessMetrics.stdDev.toFixed(2)})
+                  {fairnessMetrics.min}–{fairnessMetrics.max} смен (σ={fairnessMetrics.stdDev.toFixed(2)})
                 </span>
               </div>
             </header>
 
+            {/* ЭКРАН СЕГОДНЯ */}
+            {tab === 'TODAY' && (
+              <div className="p-3 space-y-3 fade-in">
+                {[
+                  { label: '📌 Сегодня', iso: todayISO, day: todayDay },
+                  { label: '➡️ Завтра', iso: tomorrowISO, day: tomorrowDay },
+                ].map(({ label, iso, day }) => (
+                  <div key={iso} className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-[10px] font-extrabold uppercase text-indigo-600 dark:text-indigo-400">{label}</div>
+                        <div className="text-sm font-extrabold capitalize">{formatRuDate(iso)}</div>
+                      </div>
+                      <span className="text-[11px] font-mono text-slate-400">{iso}</span>
+                    </div>
+                    {day.note && (
+                      <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 text-[11px] font-bold text-amber-900 dark:text-amber-200">
+                        📝 {day.note}
+                      </div>
+                    )}
+                    {day.batteryDutyIds?.length > 0 && (
+                      <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 text-xs">
+                        🛡️ <b>{day.batteryDutyIds.map((id) => getMember(id)?.fullName).join(', ')}</b>
+                      </div>
+                    )}
+                    {day.slots?.length ? day.slots.map((slot) => {
+                      const m = getMember(slot.memberId);
+                      return (
+                        <div key={slot.id} className={`p-2 rounded-lg text-xs flex justify-between ${slot.isPenalty ? 'bg-rose-50 dark:bg-rose-950/40' : 'bg-slate-50 dark:bg-slate-800'}`}>
+                          <span className="font-bold">{slot.title}</span>
+                          <span className={m ? 'font-extrabold' : 'text-rose-500 font-bold'}>{m ? m.fullName : '—'}</span>
+                        </div>
+                      );
+                    }) : <div className="text-center text-xs text-slate-400 py-2">Задач нет</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* КАЛЕНДАРЬ */}
             {tab === 'SCHEDULE' && (
-              <div className="p-3 space-y-3">
+              <div className="p-3 space-y-3 fade-in">
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-3 shadow-xs border border-slate-200 dark:border-slate-800 space-y-3">
                   <div className="flex items-center justify-between gap-1">
-                    <button onClick={() => changeMonth(-1)} className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-extrabold">◀ Прошлый</button>
+                    <button onClick={() => changeMonth(-1)} className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-extrabold">◀</button>
                     <div className="text-center">
                       <div className="text-sm font-extrabold uppercase tracking-wide capitalize text-indigo-700 dark:text-indigo-400">{currentMonthInfo.monthTitle}</div>
-                      <button onClick={goToToday} className="text-[10px] font-bold text-slate-500 underline mt-0.5">
-                        Сегодня ({formatRuDate(todayISO)})
-                      </button>
+                      <button onClick={goToToday} className="text-[10px] font-bold text-slate-500 underline mt-0.5">Сегодня</button>
                     </div>
-                    <button onClick={() => changeMonth(1)} className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-extrabold">Следующий ▶</button>
+                    <button onClick={() => changeMonth(1)} className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-extrabold">▶</button>
                   </div>
 
                   <div>
@@ -1198,11 +1334,13 @@
                       {currentMonthInfo.cells.map((cell, idx) => {
                         if (!cell) return <div key={idx} className="h-12 rounded-xl bg-slate-50/50 dark:bg-slate-900/30" />;
                         const dayData = schedules[cell.iso];
-                        const slotsCount = dayData?.slots?.filter((s) => s.memberId).length || 0;
+                        const hasHoles = dayData?.slots?.some((s) => !s.memberId);
                         const hasBat = (dayData?.batteryDutyIds?.length || 0) > 0;
+                        const hasNote = !!dayData?.note;
                         const isToday = cell.iso === todayISO;
                         const isSelected = cell.iso === selectedDayISO && dayFilterMode === 'SINGLE_DAY';
                         const isPast = cell.iso < todayISO;
+                        const hasAbsence = members.some((m) => inAbsence(m, cell.iso));
                         return (
                           <button key={cell.iso}
                             onClick={() => {
@@ -1211,21 +1349,17 @@
                               if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                               else setDayFilterMode('SINGLE_DAY');
                             }}
-                            className={`h-12 rounded-xl border p-1 flex flex-col items-center justify-between transition relative ${
+                            className={`h-12 rounded-xl border p-1 flex flex-col items-center justify-between transition relative ${hasHoles ? 'dot-hole' : ''} ${
                               isSelected ? 'border-2 border-indigo-600 bg-indigo-50 dark:bg-indigo-950'
                               : isToday ? 'border-2 border-amber-500 bg-amber-50/60 dark:bg-amber-950/50'
-                              : slotsCount > 0 || hasBat
-                                ? isPast ? 'border-slate-200 bg-slate-50 opacity-85' : 'border-slate-200 bg-white dark:bg-slate-800/80'
-                                : 'border-dashed border-slate-200 opacity-55'}`}>
-                            <div className="flex items-center gap-0.5">
-                              <span className={`text-xs font-extrabold ${isToday ? 'text-amber-700 dark:text-amber-300' : ''}`}>{cell.dayNum}</span>
+                              : isPast ? 'border-slate-200 bg-slate-50 opacity-85' : 'border-slate-200 bg-white dark:bg-slate-800/80'}`}>
+                            <div className="flex items-center gap-0.5 text-xs">
+                              <span className={`font-extrabold ${isToday ? 'text-amber-700 dark:text-amber-300' : ''}`}>{cell.dayNum}</span>
                               {hasBat && <span className="text-[9px]">🛡️</span>}
+                              {hasNote && <span className="text-[9px]">📝</span>}
+                              {hasAbsence && <span className="text-[9px]">🚫</span>}
                             </div>
-                            {slotsCount > 0 ? (
-                              <span className={`text-[9px] font-bold px-1 rounded ${isPast ? 'bg-slate-200 text-slate-700' : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300'}`}>
-                                {slotsCount} см.
-                              </span>
-                            ) : (<span className="text-[9px] text-slate-300">—</span>)}
+                            <span className="text-[9px] text-slate-400">—</span>
                           </button>
                         );
                       })}
@@ -1234,28 +1368,29 @@
 
                   <div className="grid grid-cols-2 gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
                     <button onClick={() => setDayFilterMode('ALL_MONTH')}
-                      className={`py-1.5 rounded-lg text-xs font-bold ${dayFilterMode === 'ALL_MONTH' ? 'bg-white dark:bg-slate-900 text-indigo-600 shadow-2xs' : 'text-slate-500'}`}>
+                      className={`py-1.5 rounded-lg text-xs font-bold ${dayFilterMode === 'ALL_MONTH' ? 'bg-white dark:bg-slate-900 text-indigo-600' : 'text-slate-500'}`}>
                       📋 Весь месяц
                     </button>
                     <button onClick={() => setDayFilterMode('SINGLE_DAY')}
-                      className={`py-1.5 rounded-lg text-xs font-bold ${dayFilterMode === 'SINGLE_DAY' ? 'bg-white dark:bg-slate-900 text-indigo-600 shadow-2xs' : 'text-slate-500'}`}>
+                      className={`py-1.5 rounded-lg text-xs font-bold ${dayFilterMode === 'SINGLE_DAY' ? 'bg-white dark:bg-slate-900 text-indigo-600' : 'text-slate-500'}`}>
                       🔍 {formatRuDate(selectedDayISO)}
                     </button>
                   </div>
 
                   {isUserAdmin && (
-                    <div className="flex items-center justify-between gap-2">
-                      <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                        <input type="checkbox" checked={showOnlyUnassigned} onChange={(e) => setShowOnlyUnassigned(e.target.checked)} className="w-4 h-4" />
-                        Только свободные задачи
-                      </label>
-                    </div>
+                    <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                      <input type="checkbox" checked={showOnlyUnassigned} onChange={(e) => setShowOnlyUnassigned(e.target.checked)} className="w-4 h-4" />
+                      Только свободные задачи
+                    </label>
                   )}
 
                   {isUserAdmin && (
                     <div className="flex items-center justify-between gap-2 pt-1">
-                      <button onClick={fillEmptyDaysInMonth} className="flex-1 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl">⚡ Заполнить пустые дни</button>
-                      <button onClick={() => setRecalcModalOpen(true)} className="px-3 py-2 bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 text-xs font-bold rounded-xl">🔄 Пересчет</button>
+                      <button onClick={fillEmptyDaysInMonth} className="flex-1 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl">⚡ Заполнить пустые</button>
+                      <button onClick={() => {
+                        setRecalcModalOpen(true);
+                        setRecalcRange({ from: currentMonthInfo.firstDateISO, to: currentMonthInfo.lastDateISO });
+                      }} className="px-3 py-2 bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 text-xs font-bold rounded-xl">🔄 Пересчет</button>
                     </div>
                   )}
                 </div>
@@ -1266,29 +1401,43 @@
                   const isToday = day.date === todayISO;
                   const isPast = day.date < todayISO;
                   const slotsToShow = (day.slots || []).filter((s) => !showOnlyUnassigned || !s.memberId);
+                  const hasAbsenceToday = members.filter((m) => inAbsence(m, day.date));
                   return (
                     <div id={`day-card-${day.date}`} key={day.date}
-                      className={`rounded-2xl border p-3.5 shadow-xs space-y-2.5 transition ${
+                      className={`rounded-2xl border p-3.5 shadow-xs space-y-2.5 transition-all duration-200 ${
                         isToday ? 'bg-white dark:bg-slate-900 border-2 border-amber-500'
                         : isPast ? 'bg-slate-50/90 dark:bg-slate-900/70 border-slate-200'
                                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'}`}>
                       <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800 flex-wrap gap-1.5">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-sm font-extrabold capitalize">{formatRuDate(day.date)}</span>
-                          <span className="text-xs font-mono text-slate-400">{day.date}</span>
                           {isToday && <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-400 text-slate-950">СЕГОДНЯ</span>}
                           {isPast && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">Архив</span>}
                         </div>
                         {isUserAdmin && (
-                          <div className="flex items-center gap-1">
-                            <button onClick={() => setBatteryModalDate(day.date)} className="text-[10px] font-bold px-2 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">🛡️ Батарея</button>
-                            <button onClick={() => setAddSlotDate(day.date)} className="text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">+ Задача</button>
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <button onClick={() => { setNoteModalDate(day.date); setNoteText(day.note || ''); }} className="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200">📝</button>
+                            <button onClick={() => copyDayStructure(day.date)} className="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200">📋</button>
+                            <button onClick={() => setBatteryModalDate(day.date)} className="text-[10px] font-bold px-2 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">🛡️</button>
+                            <button onClick={() => setAddSlotDate(day.date)} className="text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">+</button>
                             {(day.slots?.length > 0 || batteryIds.length > 0) && (
                               <button onClick={() => askConfirmClearDay(day.date)} className="text-[10px] font-bold px-2 py-1 rounded-lg bg-rose-50 text-rose-600 border border-rose-200">🗑</button>
                             )}
                           </div>
                         )}
                       </div>
+
+                      {day.note && (
+                        <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 text-[11px] font-bold text-amber-900 dark:text-amber-200">
+                          📝 {day.note}
+                        </div>
+                      )}
+
+                      {hasAbsenceToday.length > 0 && (
+                        <div className="p-2 rounded-lg bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200 text-[11px]">
+                          🚫 <b>Отсутствуют:</b> {hasAbsenceToday.map((m) => m.fullName).join(', ')}
+                        </div>
+                      )}
 
                       {(batteryIds.length > 0 || (protectRestDay && prevDayBatteryIds.length > 0)) && (
                         <div className="p-2 rounded-xl bg-amber-50/90 dark:bg-amber-950/50 border border-amber-200 text-xs space-y-1">
@@ -1298,57 +1447,40 @@
                               <span className="font-extrabold text-amber-950">{batteryIds.map((id) => getMember(id)?.fullName).join(', ')}</span>
                             </div>
                           )}
-                          {protectRestDay && prevDayBatteryIds.length > 0 && (
-                            <div className="flex items-center justify-between text-[11px] text-slate-500">
-                              <span>💤 Отдых:</span>
-                              <span className="font-semibold">{prevDayBatteryIds.map((id) => getMember(id)?.fullName).join(', ')}</span>
-                            </div>
-                          )}
                         </div>
                       )}
 
                       {slotsToShow.length === 0 ? (
-                        <div className="text-center py-3 text-xs text-slate-400">
-                          {showOnlyUnassigned && day.slots?.length > 0 ? 'Все задачи назначены' : 'На эти сутки нагрузок нет'}
-                        </div>
+                        <div className="text-center py-3 text-xs text-slate-400">Нет задач</div>
                       ) : (
                         <div className="space-y-2">
                           {slotsToShow.map((slot) => {
                             const m = getMember(slot.memberId);
-                            const badge = slot.isPenalty ? { label: 'Штраф', cls: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300' }
-                              : slot.repaidForName ? { label: 'Долг', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' }
-                              : slot.isManual ? { label: 'Вручную', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' }
+                            const badge = slot.isPenalty ? { label: 'Штраф', cls: 'bg-rose-100 text-rose-700' }
+                              : slot.locked ? { label: 'Закреплено', cls: 'bg-amber-100 text-amber-700' }
                               : { label: 'Авто', cls: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' };
                             return (
                               <div key={slot.id}
                                 onClick={() => { if (!isUserAdmin) return; setAssignMode('REGULAR'); setModalSlot({ date: day.date, slot }); }}
-                                className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 transition ${
-                                  isUserAdmin ? 'active:scale-[0.99] cursor-pointer' : ''} ${
-                                  slot.isPenalty ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-300'
-                                  : slot.repaidForName ? 'bg-emerald-50/70 dark:bg-emerald-950/50 border-emerald-300'
-                                  : 'bg-slate-50/90 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700'}`}>
+                                className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 transition-all duration-150 ${isUserAdmin ? 'active:scale-[0.99] cursor-pointer' : ''} ${
+                                  slot.isPenalty ? 'bg-rose-50 border-rose-300' : slot.locked ? 'bg-amber-50/60 border-amber-300' : 'bg-slate-50/90 dark:bg-slate-800/70 border-slate-200'}`}>
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="text-[10px] font-extrabold uppercase tracking-wide text-indigo-700 dark:text-indigo-400">{slot.title}</span>
+                                    <span className="text-[10px] font-extrabold uppercase text-indigo-700 dark:text-indigo-400">{slot.title}</span>
                                     <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${badge.cls}`}>{badge.label}</span>
-                                    {slot.repaidForName && <span className="text-[9px] font-bold px-1.5 py-0.2 bg-emerald-200 text-emerald-900 rounded">🤝 за {slot.repaidForName}</span>}
                                   </div>
                                   <div className="flex items-center gap-1.5 mt-1">
                                     <span className="text-sm font-bold truncate">{m ? m.fullName : 'Не назначен'}</span>
-                                    {m && <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${SQUAD_BADGE[m.squad]}`}>{m.squad} отд.</span>}
+                                    {m && <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${SQUAD_BADGE[m.squad]}`}>{m.squad}</span>}
                                   </div>
-                                  {slot.unassignedReason && (
-                                    <div className="text-[10px] text-rose-600 mt-1 font-semibold">⚠ {slot.unassignedReason}</div>
-                                  )}
+                                  {slot.unassignedReason && <div className="text-[10px] text-rose-600 mt-1 font-semibold">⚠ {slot.unassignedReason}</div>}
                                 </div>
                                 {isUserAdmin && (
                                   <div className="flex items-center gap-1 shrink-0">
-                                    {slot.memberId && (
-                                      <button onClick={(e) => clearSlotAssignment(day.date, slot, e)} className="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 text-slate-600 text-xs font-bold" title="Снять бойца">🧹</button>
-                                    )}
-                                    <button onClick={(e) => replaceWithBestCandidate(day.date, slot, e)} className="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 text-emerald-600 text-xs font-bold" title="Лучший кандидат">⭐</button>
-                                    <button onClick={(e) => replaceWithRandomLeastLoaded(day.date, slot, e)} className="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 text-indigo-600 text-xs font-bold" title="Случайный">🎲</button>
-                                    <button onClick={(e) => handleDeleteSlotFromDay(day.date, slot, e)} className="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 text-rose-500 text-xs font-bold" title="Удалить задачу">🗑</button>
+                                    {slot.memberId && <button onClick={(e) => clearSlotAssignment(day.date, slot, e)} className="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-700 border text-xs">🧹</button>}
+                                    <button onClick={(e) => replaceWithBestCandidate(day.date, slot, e)} className="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-700 border text-emerald-600 text-xs">⭐</button>
+                                    <button onClick={(e) => replaceWithRandomLeastLoaded(day.date, slot, e)} className="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-700 border text-indigo-600 text-xs">🎲</button>
+                                    <button onClick={(e) => { e.stopPropagation(); askConfirmDeleteSlot(day.date, slot); }} className="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-700 border text-rose-500 text-xs">🗑</button>
                                   </div>
                                 )}
                               </div>
@@ -1362,195 +1494,159 @@
               </div>
             )}
 
-            {/* СТАТИСТИКА */}
+            {/* НАГРУЗКИ */}
             {tab === 'STATS' && (
-              <div className="p-3 space-y-3">
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 space-y-2.5">
+              <div className="p-3 space-y-3 fade-in">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-extrabold">📊 Таблица нагрузок</h2>
-                    <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded-lg">Бойцов: {filteredStatsList.length}</span>
+                    <h2 className="text-sm font-extrabold">📊 Нагрузки</h2>
+                    <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded-lg">{filteredStatsList.length}</span>
                   </div>
-
                   <div className="grid grid-cols-2 gap-2">
-                    <input type="text" placeholder="🔍 Фамилия..." value={statSearch} onChange={(e) => setStatSearch(e.target.value)}
-                      className="px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs font-semibold outline-none" />
+                    <input type="text" placeholder="🔍 Фамилия" value={statSearch} onChange={(e) => setStatSearch(e.target.value)}
+                      className="px-2.5 py-1.5 border rounded-xl text-xs font-semibold dark:bg-slate-800" />
                     <select value={statDateScope} onChange={(e) => setStatDateScope(e.target.value)}
-                      className="px-2 py-1.5 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs font-bold bg-white">
-                      <option value="ALL">📅 Всё время</option>
-                      <option value="MONTH">📅 Текущий месяц</option>
-                      <option value="CUSTOM">📅 Свой диапазон</option>
+                      className="px-2 py-1.5 border rounded-xl text-xs font-bold dark:bg-slate-800">
+                      <option value="ALL">Всё время</option>
+                      <option value="MONTH">Этот месяц</option>
+                      <option value="CUSTOM">Свой диапазон</option>
                     </select>
                   </div>
-
                   {statDateScope === 'CUSTOM' && (
-                    <div className="grid grid-cols-2 gap-2 p-2 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200">
-                      <div>
-                        <label className="text-[10px] font-bold uppercase text-indigo-600">От</label>
-                        <input type="date" value={statCustomFrom} onChange={(e) => setStatCustomFrom(e.target.value)} className="w-full mt-0.5 px-2 py-1 border rounded-lg text-xs font-bold dark:bg-slate-800" />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold uppercase text-indigo-600">До</label>
-                        <input type="date" value={statCustomTo} onChange={(e) => setStatCustomTo(e.target.value)} className="w-full mt-0.5 px-2 py-1 border rounded-lg text-xs font-bold dark:bg-slate-800" />
-                      </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input type="date" value={statCustomFrom} onChange={(e) => setStatCustomFrom(e.target.value)} className="px-2 py-1 border rounded-lg text-xs dark:bg-slate-800" />
+                      <input type="date" value={statCustomTo} onChange={(e) => setStatCustomTo(e.target.value)} className="px-2 py-1 border rounded-lg text-xs dark:bg-slate-800" />
                     </div>
                   )}
-
                   <div className="grid grid-cols-4 gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
                     {[{ id: 0, label: 'Все' }, { id: 1, label: '1' }, { id: 2, label: '2' }, { id: 3, label: '3' }].map((sq) => (
                       <button key={sq.id} onClick={() => setStatSquadFilter(sq.id)}
-                        className={`py-1 rounded-lg text-[11px] font-bold ${statSquadFilter === sq.id ? 'bg-white dark:bg-slate-900 text-indigo-600 shadow-2xs' : 'text-slate-500'}`}>
+                        className={`py-1 rounded-lg text-[11px] font-bold ${statSquadFilter === sq.id ? 'bg-white dark:bg-slate-900 text-indigo-600' : 'text-slate-500'}`}>
                         {sq.label}
                       </button>
                     ))}
                   </div>
-
                   <div className="grid grid-cols-2 gap-2">
-                    <select value={statTaskFilter}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setStatTaskFilter(val);
-                        setStatSortBy(val === 'ALL' ? 'SCORE_DESC' : 'TASK_DESC');
-                      }}
-                      className="px-2 py-1.5 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs font-bold bg-white">
+                    <select value={statTaskFilter} onChange={(e) => { const v = e.target.value; setStatTaskFilter(v); setStatSortBy(v === 'ALL' ? 'TOTAL_DESC' : 'TASK_DESC'); }}
+                      className="px-2 py-1.5 border rounded-xl text-xs font-bold dark:bg-slate-800">
                       <option value="ALL">Все виды</option>
                       <option value="BATTERY">🛡️ Батарея</option>
-                      {allWorkloadTitles.map((title) => (<option key={title} value={title}>📌 {title}</option>))}
+                      {allWorkloadTitles.map((t) => (<option key={t} value={t}>📌 {t}</option>))}
                       <option value="PENALTY">⚠ Штрафные</option>
                     </select>
-
                     <select value={statSortBy} onChange={(e) => setStatSortBy(e.target.value)}
-                      className="px-2 py-1.5 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs font-bold bg-white">
-                      <option value="SCORE_DESC">Индекс ↓</option>
-                      <option value="SCORE_ASC">Индекс ↑</option>
-                      <option value="TOTAL_DESC">Всего смен</option>
+                      className="px-2 py-1.5 border rounded-xl text-xs font-bold dark:bg-slate-800">
+                      <option value="TOTAL_DESC">Смен ↓</option>
+                      <option value="TOTAL_ASC">Смен ↑</option>
                       <option value="TASK_DESC">По задаче</option>
                       <option value="NAME_ASC">А–Я</option>
                     </select>
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
-                      <thead>
-                        <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 text-[10px] font-extrabold uppercase text-slate-500">
-                          <th className="py-2.5 px-3 sticky left-0 bg-slate-50 dark:bg-slate-800 z-10">Боец</th>
-                          <th className="py-2.5 px-2 text-center bg-indigo-50/60 dark:bg-indigo-950/60 text-indigo-800">Индекс</th>
-                          <th className="py-2.5 px-2 text-center">Всего</th>
-                          <th className="py-2.5 px-2 text-center text-amber-800 bg-amber-50/50">🛡️</th>
-                          {allWorkloadTitles.map((title) => (<th key={title} className="py-2.5 px-2 text-center whitespace-nowrap">{title}</th>))}
-                          <th className="py-2.5 px-2 text-center text-rose-700">⚠</th>
-                          <th className="py-2.5 px-2 text-center">Статус</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {filteredStatsList.map((st) => (
-                          <tr key={st.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50">
-                            <td className="py-2 px-3 sticky left-0 bg-white dark:bg-slate-900 z-10 border-r border-slate-100">
-                              <div className="flex items-center gap-1.5">
-                                <span className={`text-[9px] font-bold px-1 rounded ${SQUAD_BADGE[st.squad]}`}>{st.squad}</span>
-                                <span className="font-bold"><HighlightText text={st.fullName} query={statSearch} /></span>
-                              </div>
-                            </td>
-                            <td className="py-2 px-2 text-center font-mono font-extrabold text-indigo-700 dark:text-indigo-300 bg-indigo-50/30">{st.score.toFixed(1)}</td>
-                            <td className="py-2 px-2 text-center font-bold">{st.totalAll}</td>
-                            <td className="py-2 px-2 text-center font-bold text-amber-800 bg-amber-50/30">{st.batteryCount || 0}</td>
-                            {allWorkloadTitles.map((title) => (<td key={title} className="py-2 px-2 text-center font-semibold">{st.byTitle[title] || 0}</td>))}
-                            <td className="py-2 px-2 text-center">
-                              {st.penaltyShifts > 0 ? (
-                                <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 font-bold text-[10px]">+{st.penaltyShifts}</span>
-                              ) : (<span className="text-slate-300">0</span>)}
-                            </td>
-                            <td className="py-2 px-2 text-center whitespace-nowrap">
-                              {isUserAdmin ? (
-                                <select value={st.status}
-                                  onChange={(e) => {
-                                    const nextStatus = e.target.value;
-                                    const nextMembers = members.map((x) => x.id === st.id ? { ...x, status: nextStatus } : x);
-                                    const { nextLogs } = createLogAndBackup('👤 Статус', `${st.fullName}: ${STATUS_INFO[nextStatus].label}`, false, 'STATUS');
-                                    setMembers(nextMembers);
-                                    pushToCloudNow({ members: nextMembers, logs: nextLogs });
-                                    showToast('Статус сохранён');
-                                  }}
-                                  className={`text-[10px] font-bold px-1.5 py-1 rounded-lg border outline-none ${STATUS_INFO[st.status].color}`}>
-                                  <option value="ACTIVE">В строю</option>
-                                  <option value="SICK">Больничный</option>
-                                  <option value="LEAVE">Отпуск</option>
-                                </select>
-                              ) : (
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_INFO[st.status].color}`}>{STATUS_INFO[st.status].label}</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ДОЛГИ */}
-            {tab === 'DEBTS' && (
-              <div className="p-3 space-y-3">
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 space-y-3">
-                  <h2 className="text-sm font-extrabold">🤝 Книга долгов</h2>
-                  {debts.length === 0 ? (
-                    <div className="py-6 text-center bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 text-xs text-slate-400">Активных долгов нет</div>
-                  ) : (
-                    <div className="space-y-2">
-                      {debts.map((d) => (
-                        <div key={d.id} className="p-3 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 flex items-center justify-between gap-2">
-                          <div>
-                            <div className="text-xs font-bold">
-                              <span className="text-rose-600">{getName(d.debtorId)}</span> → <span className="text-emerald-600">{getName(d.creditorId)}</span>
-                            </div>
-                            <div className="text-[11px] text-slate-500 mt-0.5">Смен: <b>{d.count}</b> • {d.lastReason || 'Подмена'}</div>
-                          </div>
-                          {isUserAdmin && (
-                            <button onClick={() => {
-                              const nextDebts = debts.map((x) => x.id === d.id ? { ...x, count: x.count - 1 } : x).filter((x) => x.count > 0);
-                              const { nextLogs } = createLogAndBackup('🤝 Списание', `${getName(d.debtorId)} → ${getName(d.creditorId)} (-1)`, false, 'DEBT');
-                              setDebts(nextDebts);
-                              pushToCloudNow({ debts: nextDebts, logs: nextLogs });
-                              showToast('Долг списан');
-                            }}
-                              className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-amber-300 text-xs font-bold">Списать 1</button>
-                          )}
+                <div className="space-y-2">
+                  {filteredStatsList.map((st) => (
+                    <div key={st.id} className="bg-white dark:bg-slate-900 rounded-2xl p-3 border border-slate-200">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${SQUAD_BADGE[st.squad]}`}>{st.squad}</span>
+                          <span className="font-extrabold text-sm truncate">{st.fullName}</span>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${STATUS_INFO[st.status].color}`}>{STATUS_INFO[st.status].label}</span>
                         </div>
-                      ))}
+                        <div className="text-xl font-extrabold text-indigo-700 dark:text-indigo-300">{st.totalAll}</div>
+                      </div>
+                      <div className="mt-2 grid grid-cols-2 gap-1.5 text-[11px]">
+                        <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200">
+                          <div className="text-[9px] uppercase font-bold text-amber-700">🛡️ Батарея</div>
+                          <div className="font-extrabold text-amber-900">{st.batteryCount || 0}</div>
+                        </div>
+                        <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200">
+                          <div className="text-[9px] uppercase font-bold text-rose-700">⚠ Штраф</div>
+                          <div className="font-extrabold text-rose-900">{st.penaltyShifts || 0}</div>
+                        </div>
+                      </div>
+                      {(st.absences || []).length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {(st.absences || []).map((a, i) => (
+                            <div key={i} className="flex items-center justify-between text-[10px] p-1.5 rounded bg-rose-50 dark:bg-rose-950/40">
+                              <span>🚫 {a.from}…{a.to} {a.reason && `(${a.reason})`}</span>
+                              {isUserAdmin && <button onClick={() => removeAbsence(st.id, i)} className="text-rose-600 font-bold">✕</button>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {isUserAdmin && (
+                        <div className="mt-2 flex gap-1 flex-wrap">
+                          <select value={st.status}
+                            onChange={(e) => {
+                              const nextStatus = e.target.value;
+                              const nextMembers = members.map((x) => x.id === st.id ? { ...x, status: nextStatus } : x);
+                              const { nextLogs } = createLogAndBackup('👤 Статус', `${st.fullName}: ${STATUS_INFO[nextStatus].label}`, false, 'STATUS');
+                              setMembers(nextMembers);
+                              pushToCloudNow({ members: nextMembers, logs: nextLogs });
+                            }}
+                            className={`text-[10px] font-bold px-1.5 py-1 rounded-lg border ${STATUS_INFO[st.status].color}`}>
+                            <option value="ACTIVE">В строю</option>
+                            <option value="SICK">Больничный</option>
+                            <option value="LEAVE">Отпуск</option>
+                          </select>
+                          <button onClick={() => { setAbsenceModalMember(st); setAbsenceForm({ from: todayISO, to: todayISO, reason: '' }); }}
+                            className="text-[10px] font-bold px-1.5 py-1 rounded-lg border border-rose-200 bg-rose-50 text-rose-700">
+                            🚫 Отсутствие
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  ))}
                 </div>
               </div>
             )}
 
-            {/* НАГРУЗКИ */}
+            {/* ШАБЛОНЫ */}
             {tab === 'TASKS' && isUserAdmin && (
-              <div className="p-3 space-y-3">
-                <div className="bg-amber-50/90 dark:bg-amber-950/40 rounded-2xl p-3.5 border border-amber-200 space-y-2.5">
-                  <h2 className="text-xs font-extrabold uppercase text-amber-900">🛡️ Бонус батареи</h2>
+              <div className="p-3 space-y-3 fade-in">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 space-y-2">
+                  <h2 className="text-sm font-extrabold">⚙️ Правила генерации</h2>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold">Баллов за сутки:</span>
-                    <select value={batteryWeight}
-                      onChange={(e) => { const val = Number(e.target.value); setBatteryWeight(val); pushToCloudNow({ batteryWeight: val }); }}
-                      className="px-2.5 py-1 rounded-lg border border-amber-300 dark:bg-slate-800 font-bold">
-                      <option value={0}>0</option>
-                      <option value={0.5}>+0.5</option>
-                      <option value={1.0}>+1.0</option>
-                      <option value={1.5}>+1.5</option>
+                    <span className="font-semibold">Мин. дней между сменами:</span>
+                    <select value={cooldownDays} onChange={(e) => setCooldownDays(Number(e.target.value))}
+                      className="px-2.5 py-1 rounded-lg border dark:bg-slate-800 font-bold">
+                      <option value={0}>Выкл</option>
+                      <option value={1}>1 день</option>
+                      <option value={2}>2 дня</option>
+                      <option value={3}>3 дня</option>
+                      <option value={4}>4 дня</option>
+                      <option value={5}>5 дней</option>
+                      <option value={6}>6 дней</option>
+                      <option value={7}>7 дней</option>
                     </select>
                   </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold">Макс. смен в неделю:</span>
+                    <select value={maxShiftsPerWeek} onChange={(e) => setMaxShiftsPerWeek(Number(e.target.value))}
+                      className="px-2.5 py-1 rounded-lg border dark:bg-slate-800 font-bold">
+                      <option value={0}>Без лимита</option>
+                      <option value={1}>1</option>
+                      <option value={2}>2</option>
+                      <option value={3}>3</option>
+                      <option value={4}>4</option>
+                      <option value={5}>5</option>
+                    </select>
+                  </div>
+                  <label className="flex items-center gap-1.5 text-[11px] font-bold">
+                    <input type="checkbox" checked={protectRestDay} onChange={(e) => setProtectRestDay(e.target.checked)} className="w-4 h-4" />
+                    Не ставить после суточного наряда (D+1)
+                  </label>
                 </div>
 
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 space-y-3">
-                  <h2 className="text-sm font-extrabold">Ежедневные нагрузки</h2>
+                  <h2 className="text-sm font-extrabold">Ежедневные задачи</h2>
                   <div className="space-y-2">
                     {taskTemplates.map((tpl) => (
                       <div key={tpl.id} className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 flex items-center justify-between">
                         <div>
                           <div className="text-xs font-bold">{tpl.title}</div>
-                          <div className="text-[11px] text-slate-500">Людей: <b>{tpl.count}</b> • Вес: <b>{tpl.weight}</b></div>
+                          <div className="text-[11px] text-slate-500">Людей: <b>{tpl.count}</b></div>
                         </div>
                         <button onClick={() => {
                           const nextTpls = taskTemplates.filter((x) => x.id !== tpl.id);
@@ -1563,55 +1659,68 @@
                   <form onSubmit={(e) => {
                     e.preventDefault();
                     if (!newTplTitle.trim()) return;
-                    const nextTpls = [...taskTemplates, { id: `tpl_${Date.now()}`, title: newTplTitle.trim(), count: Number(newTplCount) || 1, weight: Number(newTplWeight) || 1.0 }];
+                    const nextTpls = [...taskTemplates, { id: `tpl_${Date.now()}`, title: newTplTitle.trim(), count: Number(newTplCount) || 1 }];
                     setTaskTemplates(nextTpls);
                     pushToCloudNow({ taskTemplates: nextTpls });
                     setNewTplTitle('');
-                    showToast('Шаблон добавлен');
+                    showToast('Добавлено');
                   }} className="pt-2 border-t border-slate-100 space-y-2">
-                    <input type="text" placeholder="Название..." value={newTplTitle} onChange={(e) => setNewTplTitle(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs font-semibold" />
-                    <div className="grid grid-cols-2 gap-2">
-                      <input type="number" min="1" max="10" value={newTplCount} onChange={(e) => setNewTplCount(e.target.value)} className="px-3 py-1.5 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs font-bold" />
-                      <input type="number" step="0.1" value={newTplWeight} onChange={(e) => setNewTplWeight(e.target.value)} className="px-3 py-1.5 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs font-bold" />
-                    </div>
+                    <input type="text" placeholder="Название" value={newTplTitle} onChange={(e) => setNewTplTitle(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-xl text-xs dark:bg-slate-800" />
+                    <input type="number" min="1" max="10" value={newTplCount} onChange={(e) => setNewTplCount(e.target.value)}
+                      className="w-full px-3 py-1.5 border rounded-xl text-xs dark:bg-slate-800" />
                     <button type="submit" className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl">+ Добавить</button>
                   </form>
                 </div>
               </div>
             )}
 
-            {/* ОБЛАКО / АРХИВ */}
+            {/* АРХИВ */}
             {tab === 'CLOUD' && (
-              <div className="p-3 space-y-3">
+              <div className="p-3 space-y-3 fade-in">
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <h2 className="text-sm font-extrabold">☁️ Синхронизация (60с)</h2>
                     <span className="text-[11px] font-mono text-indigo-500">ID: {currentTelegramId || 'Браузер'}</span>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 text-xs font-bold">{cloudStatus}</div>
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-bold">{cloudStatus}</div>
                   <div className="grid grid-cols-2 gap-2">
                     {isUserAdmin && (
                       <button onClick={() => pushToCloudNow()} className="py-2 bg-slate-900 dark:bg-indigo-600 text-white text-xs font-bold rounded-xl">⬆️ Отправить</button>
                     )}
-                    <button onClick={() => pullFromCloudNow(false)} className="py-2 bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 text-xs font-bold rounded-xl">⬇️ Обновить</button>
+                    <button onClick={() => pullFromCloudNow(false)} className="py-2 bg-indigo-50 dark:bg-slate-800 text-indigo-700 border text-xs font-bold rounded-xl">⬇️ Обновить</button>
                   </div>
+                  {isUserAdmin && (
+                    <button onClick={resetAllData} className="w-full py-2 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded-xl">
+                      ⚠ Сбросить все данные (с бэкапом)
+                    </button>
+                  )}
                 </div>
 
                 {isUserAdmin && (
                   <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 space-y-2.5">
-                    <h2 className="text-sm font-extrabold">⏪ Бэкапы ({backups.length})</h2>
-                    {backups.length === 0 ? (
-                      <p className="text-xs text-slate-400">Создаются перед заменами и пересчётом</p>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-sm font-extrabold">⏪ Бэкапы ({backups.length})</h2>
+                      <select value={backupFilter} onChange={(e) => setBackupFilter(e.target.value)}
+                        className="px-2 py-1 border rounded-lg text-[10px] font-bold dark:bg-slate-800">
+                        <option value="ALL">Все</option>
+                        <option value="ASSIGNMENT">Замены</option>
+                        <option value="RECALC">Пересчеты</option>
+                        <option value="BATTERY">Батарея</option>
+                        <option value="RESET">Сбросы</option>
+                      </select>
+                    </div>
+                    {backups.filter((b) => backupFilter === 'ALL' || b.type === backupFilter).length === 0 ? (
+                      <p className="text-xs text-slate-400">Пока нет</p>
                     ) : (
-                      <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                        {backups.map((bk) => (
-                          <div key={bk.id} className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 flex items-center justify-between gap-2 text-xs">
+                      <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                        {backups.filter((b) => backupFilter === 'ALL' || b.type === backupFilter).map((bk) => (
+                          <div key={bk.id} className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border flex items-center justify-between gap-2 text-xs">
                             <div className="min-w-0">
                               <div className="font-bold truncate">{bk.label}</div>
-                              <div className="text-[10px] text-slate-400 font-mono">{bk.time}</div>
+                              <div className="text-[10px] text-slate-400 font-mono">{bk.time} • {bk.type}</div>
                             </div>
-                            <button onClick={() => restoreBackupSnapshot(bk)} className="px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-extrabold text-[11px] shrink-0">⏪</button>
+                            <button onClick={() => restoreBackupSnapshot(bk)} className="px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-extrabold text-[11px]">⏪</button>
                           </div>
                         ))}
                       </div>
@@ -1621,24 +1730,17 @@
 
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 space-y-2">
                   <h2 className="text-sm font-extrabold">📜 Журнал ({logs.length})</h2>
-                  {logs.length === 0 ? (
-                    <p className="text-xs text-slate-400 py-3 text-center">Пусто</p>
-                  ) : (
-                    <div className="space-y-1.5 max-h-60 overflow-y-auto divide-y divide-slate-100">
-                      {logs.slice(0, 30).map((l) => (
-                        <div key={l.id} className="pt-1.5 text-xs">
-                          <div className="flex justify-between font-bold flex-wrap gap-1">
-                            <span className="text-indigo-600 dark:text-indigo-400">
-                              {l.action}
-                              {l.type && <span className="ml-1 text-[9px] px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">{l.type}</span>}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-mono">{l.time} • {l.author}</span>
-                          </div>
-                          <div className="text-slate-600 dark:text-slate-300 text-[11px]">{l.details}</div>
+                  <div className="space-y-1.5 max-h-60 overflow-y-auto divide-y divide-slate-100">
+                    {logs.slice(0, 30).map((l) => (
+                      <div key={l.id} className="pt-1.5 text-xs">
+                        <div className="flex justify-between font-bold flex-wrap gap-1">
+                          <span className="text-indigo-600">{l.action} <span className="text-[9px] px-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">{l.type}</span></span>
+                          <span className="text-[10px] text-slate-400 font-mono">{l.time} • {l.author}</span>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        <div className="text-slate-600 dark:text-slate-300 text-[11px]">{l.details}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 space-y-2.5">
@@ -1647,11 +1749,11 @@
                     <button onClick={runBuiltInUnitTests} className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-xl">▶ Запустить</button>
                   </div>
                   {testResults && (
-                    <div className="space-y-1.5 pt-1">
+                    <div className="space-y-1.5">
                       {testResults.map((tr, i) => (
-                        <div key={i} className={`p-2 rounded-xl border text-xs ${tr.passed ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+                        <div key={i} className={`p-2 rounded-xl border text-xs ${tr.passed ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
                           <div className="font-extrabold">{tr.passed ? '✅' : '❌'} {tr.name}</div>
-                          <div className="text-[11px] text-slate-600 dark:text-slate-300">{tr.detail}</div>
+                          <div className="text-[11px] text-slate-600">{tr.detail}</div>
                         </div>
                       ))}
                     </div>
@@ -1660,20 +1762,119 @@
               </div>
             )}
 
+            {/* ПОИСК */}
+            {searchOpen && (
+              <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-4 pt-16 modal-enter">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-sm w-full p-4 space-y-3 border shadow-2xl">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-extrabold">🔍 Поиск бойца</h3>
+                    <button onClick={() => setSearchOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 font-bold">✕</button>
+                  </div>
+                  <input autoFocus type="text" placeholder="Фамилия..." value={statSearch} onChange={(e) => setStatSearch(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-xl text-sm dark:bg-slate-800" />
+                  <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+                    {members.filter((m) => !statSearch.trim() || m.fullName.toLowerCase().includes(statSearch.toLowerCase())).map((m) => (
+                      <button key={m.id} onClick={() => jumpToMember(m.id)} className="w-full text-left p-2 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800">
+                        <div>
+                          <div className="text-xs font-bold">{m.fullName}</div>
+                          <div className="text-[10px] text-slate-500">{m.squad} отд. • {STATUS_INFO[m.status].label}</div>
+                        </div>
+                        <span className="text-indigo-600 font-bold text-xs">→</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* МОДАЛКА ЗАМЕТКИ */}
+            {noteModalDate && (
+              <div className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center">
+                <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl p-4 space-y-3 modal-enter">
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <div className="text-sm font-extrabold">📝 Заметка • {formatRuDate(noteModalDate)}</div>
+                    <button onClick={() => setNoteModalDate(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 font-bold">✕</button>
+                  </div>
+                  <textarea rows="3" value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Например: ПХД после обеда"
+                    className="w-full px-3 py-2 border rounded-xl text-xs dark:bg-slate-800" />
+                  <button onClick={saveDayNote} className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl">Сохранить</button>
+                </div>
+              </div>
+            )}
+
+            {/* МОДАЛКА КОПИРОВАНИЯ */}
+            {copyModalDate && (
+              <div className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center">
+                <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl p-4 space-y-3 modal-enter">
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <div className="text-sm font-extrabold">📋 Копировать структуру из {formatRuDate(copyModalDate)}</div>
+                    <button onClick={() => setCopyModalDate(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 font-bold">✕</button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-slate-500">С</label>
+                      <input type="date" value={copyRange.from} onChange={(e) => setCopyRange({ ...copyRange, from: e.target.value })} className="w-full px-2 py-1 border rounded-lg text-xs dark:bg-slate-800" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-slate-500">По</label>
+                      <input type="date" value={copyRange.to} onChange={(e) => setCopyRange({ ...copyRange, to: e.target.value })} className="w-full px-2 py-1 border rounded-lg text-xs dark:bg-slate-800" />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-500">Копируется только структура (типы задач). Назначения будут пустыми.</p>
+                  <button onClick={applyCopyDayStructure} className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl">Применить</button>
+                </div>
+              </div>
+            )}
+
+            {/* МОДАЛКА ОТСУТСТВИЯ */}
+            {absenceModalMember && (
+              <div className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center">
+                <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl p-4 space-y-3 modal-enter">
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <div className="text-sm font-extrabold">🚫 Отсутствие • {absenceModalMember.fullName}</div>
+                    <button onClick={() => setAbsenceModalMember(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 font-bold">✕</button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-slate-500">С</label>
+                      <input type="date" value={absenceForm.from} onChange={(e) => setAbsenceForm({ ...absenceForm, from: e.target.value })} className="w-full px-2 py-1 border rounded-lg text-xs dark:bg-slate-800" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-slate-500">По</label>
+                      <input type="date" value={absenceForm.to} onChange={(e) => setAbsenceForm({ ...absenceForm, to: e.target.value })} className="w-full px-2 py-1 border rounded-lg text-xs dark:bg-slate-800" />
+                    </div>
+                  </div>
+                  <input type="text" placeholder="Причина (необязательно)" value={absenceForm.reason} onChange={(e) => setAbsenceForm({ ...absenceForm, reason: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl text-xs dark:bg-slate-800" />
+                  <button onClick={addAbsence} className="w-full py-2 bg-rose-600 text-white text-xs font-bold rounded-xl">Добавить</button>
+                </div>
+              </div>
+            )}
+
             {/* МОДАЛКА ПЕРЕСЧЕТА */}
             {recalcModalOpen && (
-              <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-                <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-5 space-y-3.5 border border-slate-200 shadow-2xl">
-                  <h3 className="text-base font-extrabold">🔄 Пересчитать {currentMonthInfo.monthTitle}?</h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">Прошедшие дни можно сохранить:</p>
-                  <div className="space-y-2 pt-1">
-                    <button onClick={() => executeRecalculate(true)} className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 text-white text-xs font-extrabold text-left">
-                      ✅ Только с сегодня
-                      <span className="block text-[10px] font-normal text-indigo-100 mt-0.5">Прошедшие дни не тронуты</span>
+              <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 modal-enter">
+                <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-5 space-y-3 border shadow-2xl">
+                  <h3 className="text-base font-extrabold">🔄 Пересчитать диапазон</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-slate-500">От</label>
+                      <input type="date" value={recalcRange.from} onChange={(e) => setRecalcRange({ ...recalcRange, from: e.target.value })} className="w-full px-2 py-1 border rounded-lg text-xs dark:bg-slate-800" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-slate-500">До</label>
+                      <input type="date" value={recalcRange.to} onChange={(e) => setRecalcRange({ ...recalcRange, to: e.target.value })} className="w-full px-2 py-1 border rounded-lg text-xs dark:bg-slate-800" />
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-500">Выберите режим:</p>
+                  <div className="space-y-2">
+                    <button onClick={() => setRecalcConfirm({ resetAll: false })} className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 text-white text-xs font-extrabold text-left">
+                      ✅ Заполнить пустые
+                      <span className="block text-[10px] font-normal text-indigo-100 mt-0.5">Существующие назначения остаются</span>
                     </button>
-                    <button onClick={() => executeRecalculate(false)} className="w-full py-2.5 px-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 text-xs font-extrabold text-left">
-                      ⚠️ Весь месяц с 1-го
-                      <span className="block text-[10px] font-normal opacity-80 mt-0.5">Перераспределит все дни</span>
+                    <button onClick={() => setRecalcConfirm({ resetAll: true })} className="w-full py-2.5 px-3 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-extrabold text-left">
+                      ⚠️ Сбросить и пересчитать
+                      <span className="block text-[10px] font-normal opacity-80 mt-0.5">Все назначения в диапазоне будут удалены</span>
                     </button>
                     <button onClick={() => setRecalcModalOpen(false)} className="w-full py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold">Отмена</button>
                   </div>
@@ -1681,13 +1882,28 @@
               </div>
             )}
 
+            {recalcConfirm && (
+              <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 modal-enter">
+                <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-5 space-y-3 border shadow-2xl">
+                  <h3 className="text-base font-extrabold">⚠ Точно?</h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
+                    Диапазон {recalcRange.from} … {recalcRange.to}. Режим: {recalcConfirm.resetAll ? 'сброс и пересчёт' : 'дозаполнение пустых'}.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => setRecalcConfirm(null)} className="py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold">Отмена</button>
+                    <button onClick={() => executeRecalculateRange(recalcRange.from, recalcRange.to, recalcConfirm.resetAll)} className="py-2 rounded-xl bg-rose-600 text-white text-xs font-extrabold">Подтвердить</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* ПОДТВЕРЖДЕНИЕ */}
             {confirmDialog && (
-              <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-                <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-5 space-y-4 border border-slate-200 shadow-2xl">
+              <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 modal-enter">
+                <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-5 space-y-4 border shadow-2xl">
                   <h3 className="text-base font-extrabold">{confirmDialog.title}</h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{confirmDialog.message}</p>
-                  <div className="grid grid-cols-2 gap-2 pt-1">
+                  <p className="text-xs text-slate-600 dark:text-slate-300">{confirmDialog.message}</p>
+                  <div className="grid grid-cols-2 gap-2">
                     <button onClick={() => setConfirmDialog(null)} className="py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold">Отмена</button>
                     <button onClick={confirmDialog.onConfirm} className="py-2.5 rounded-xl bg-rose-600 text-white text-xs font-extrabold">{confirmDialog.confirmLabel}</button>
                   </div>
@@ -1698,20 +1914,19 @@
             {/* БАТАРЕЯ */}
             {isUserAdmin && batteryModalDate && (
               <div className="fixed inset-0 z-40 bg-black/50 flex items-end justify-center">
-                <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl p-4 space-y-3 max-h-[82vh] flex flex-col">
+                <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl p-4 space-y-3 max-h-[82vh] flex flex-col modal-enter">
                   <div className="flex items-center justify-between border-b pb-2">
-                    <div className="text-sm font-extrabold">🛡️ Наряд на {formatRuDate(batteryModalDate)} <span className="text-slate-400 font-mono text-xs">({schedules[batteryModalDate]?.batteryDutyIds?.length || 0})</span></div>
+                    <div className="text-sm font-extrabold">🛡️ {formatRuDate(batteryModalDate)} ({schedules[batteryModalDate]?.batteryDutyIds?.length || 0})</div>
                     <button onClick={() => setBatteryModalDate(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 font-bold">✕</button>
                   </div>
                   <div className="overflow-y-auto divide-y divide-slate-100 border rounded-xl">
                     {members.map((m) => {
-                      const checked = isOnBatteryDuty(m.id, batteryModalDate);
+                      const checked = (schedules[batteryModalDate]?.batteryDutyIds || []).includes(m.id);
+                      const absent = inAbsence(m, batteryModalDate);
                       return (
-                        <div key={m.id} onClick={() => toggleBatteryDutyMember(batteryModalDate, m.id)} className={`p-2.5 flex items-center justify-between cursor-pointer ${checked ? 'bg-amber-50 dark:bg-amber-950/50' : ''}`}>
-                          <span className="text-xs font-bold">{m.fullName} ({m.squad} отд.)</span>
-                          <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${checked ? 'bg-amber-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600'}`}>
-                            {checked ? '✓' : 'Выбрать'}
-                          </span>
+                        <div key={m.id} onClick={() => toggleBatteryDutyMember(batteryModalDate, m.id)} className={`p-2.5 flex items-center justify-between cursor-pointer ${checked ? 'bg-amber-50' : ''}`}>
+                          <span className={`text-xs font-bold ${absent ? 'text-slate-400' : ''}`}>{m.fullName} {absent && '🚫'}</span>
+                          <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${checked ? 'bg-amber-500 text-white' : 'bg-slate-100 dark:bg-slate-800'}`}>{checked ? '✓' : 'Выбрать'}</span>
                         </div>
                       );
                     })}
@@ -1720,26 +1935,22 @@
               </div>
             )}
 
-            {/* НАЗНАЧЕНИЕ С ГРУППАМИ */}
+            {/* НАЗНАЧЕНИЕ */}
             {isUserAdmin && modalSlot && (
               <div className="fixed inset-0 z-40 bg-black/50 flex items-end justify-center">
-                <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl p-4 space-y-3 max-h-[85vh] flex flex-col">
+                <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl p-4 space-y-3 max-h-[85vh] flex flex-col modal-enter">
                   <div className="flex items-center justify-between border-b pb-2">
                     <div className="text-sm font-extrabold">{modalSlot.slot.title} • {formatRuDate(modalSlot.date)}</div>
                     <button onClick={() => setModalSlot(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 font-bold">✕</button>
                   </div>
-
                   <div className="grid grid-cols-2 gap-1">
                     <button onClick={() => replaceWithBestCandidate(modalSlot.date, modalSlot.slot)} className="w-full py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl">⭐ Лучший</button>
                     <button onClick={() => replaceWithRandomLeastLoaded(modalSlot.date, modalSlot.slot)} className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl">🎲 Случайный</button>
                   </div>
-
-                  <div className="grid grid-cols-3 gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                  <div className="grid grid-cols-2 gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
                     <button onClick={() => setAssignMode('REGULAR')} className={`py-1.5 rounded-lg text-[11px] font-bold ${assignMode === 'REGULAR' ? 'bg-white dark:bg-slate-900 text-indigo-600' : 'text-slate-500'}`}>Очередь</button>
-                    <button onClick={() => setAssignMode('DEBT_COVER')} className={`py-1.5 rounded-lg text-[11px] font-bold ${assignMode === 'DEBT_COVER' ? 'bg-emerald-600 text-white' : 'text-slate-500'}`}>В долг</button>
                     <button onClick={() => setAssignMode('PENALTY')} className={`py-1.5 rounded-lg text-[11px] font-bold ${assignMode === 'PENALTY' ? 'bg-rose-600 text-white' : 'text-slate-500'}`}>Штраф</button>
                   </div>
-
                   <div className="overflow-y-auto border rounded-xl flex-1">
                     {(() => {
                       const day = schedules[modalSlot.date] || { batteryDutyIds: [], slots: [] };
@@ -1748,25 +1959,21 @@
                         ...(day.slots || []).filter((s) => s.id !== modalSlot.slot.id).map((s) => s.memberId).filter(Boolean),
                       ]);
                       const active = members.filter((m) => m.status === 'ACTIVE');
-                      const recommended = active
-                        .filter((m) => !busy.has(m.id) && !isRecoveringFromBatteryDuty(m.id, modalSlot.date))
-                        .sort((a, b) => (statsMap[a.id]?.score || 0) - (statsMap[b.id]?.score || 0))
-                        .slice(0, 5);
+                      const recommended = active.filter((m) => !busy.has(m.id) && !inAbsence(m, modalSlot.date) && !isRecoveringFromBatteryDuty(m.id, modalSlot.date))
+                        .sort((a, b) => (statsMap[a.id]?.totalAll || 0) - (statsMap[b.id]?.totalAll || 0)).slice(0, 5);
                       const freeToday = active.filter((m) => !busy.has(m.id) && !recommended.some((r) => r.id === m.id));
-                      const others = members.filter((m) => m.status !== 'ACTIVE' || busy.has(m.id));
+                      const others = members.filter((m) => m.status !== 'ACTIVE' || busy.has(m.id) || inAbsence(m, modalSlot.date));
 
                       const renderRow = (m, group) => {
                         const warns = getAssignmentWarnings(modalSlot.date, m.id);
                         return (
                           <div key={`${group}_${m.id}`} className="p-2.5 flex items-center justify-between border-b last:border-0">
                             <div className="min-w-0">
-                              <div className="text-xs font-bold">{m.fullName} ({m.squad} отд.)</div>
-                              <div className="text-[10px] text-slate-500">Индекс: {(statsMap[m.id]?.score || 0).toFixed(1)}</div>
-                              {warns.length > 0 && (
-                                <div className="text-[10px] text-rose-600 mt-0.5">⚠ {warns.join(' • ')}</div>
-                              )}
+                              <div className="text-xs font-bold">{m.fullName} ({m.squad})</div>
+                              <div className="text-[10px] text-slate-500">Смен: {statsMap[m.id]?.totalAll || 0}</div>
+                              {warns.length > 0 && <div className="text-[10px] text-rose-600 mt-0.5">⚠ {warns.join(' • ')}</div>}
                             </div>
-                            <button onClick={() => handleAssignMember(m.id)} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-xl shrink-0 ml-2">Назначить</button>
+                            <button onClick={() => handleAssignMember(m.id)} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-xl ml-2">→</button>
                           </div>
                         );
                       };
@@ -1775,19 +1982,19 @@
                         <>
                           {recommended.length > 0 && (
                             <div>
-                              <div className="px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-[10px] font-extrabold uppercase text-emerald-700 dark:text-emerald-300">⭐ Рекомендованные</div>
+                              <div className="px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-[10px] font-extrabold uppercase text-emerald-700">⭐ Рекомендованные</div>
                               {recommended.map((m) => renderRow(m, 'rec'))}
                             </div>
                           )}
                           {freeToday.length > 0 && (
                             <div>
-                              <div className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 text-[10px] font-extrabold uppercase text-slate-500">Свободные сегодня</div>
+                              <div className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 text-[10px] font-extrabold uppercase text-slate-500">Свободные</div>
                               {freeToday.map((m) => renderRow(m, 'free'))}
                             </div>
                           )}
                           {others.length > 0 && (
                             <div>
-                              <div className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-[10px] font-extrabold uppercase text-slate-500">Остальные (с предупреждениями)</div>
+                              <div className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-[10px] font-extrabold uppercase text-slate-500">Остальные</div>
                               {others.map((m) => renderRow(m, 'other'))}
                             </div>
                           )}
@@ -1799,38 +2006,38 @@
               </div>
             )}
 
-            {/* ДОБАВЛЕНИЕ ЗАДАЧИ */}
+            {/* ДОБАВЛЕНИЕ */}
             {isUserAdmin && addSlotDate && (
               <div className="fixed inset-0 z-40 bg-black/50 flex items-end justify-center">
-                <form onSubmit={handleAddCustomSlotToDay} className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl p-4 space-y-3">
+                <form onSubmit={handleAddCustomSlotToDay} className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl p-4 space-y-3 modal-enter">
                   <div className="flex items-center justify-between border-b pb-2">
-                    <div className="text-sm font-extrabold">+ Задача на {formatRuDate(addSlotDate)}</div>
+                    <div className="text-sm font-extrabold">+ Задача • {formatRuDate(addSlotDate)}</div>
                     <button type="button" onClick={() => setAddSlotDate(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 font-bold">✕</button>
                   </div>
-                  <input type="text" required placeholder="Название (например ПХД)" value={customSlotTitle} onChange={(e) => setCustomSlotTitle(e.target.value)}
-                    className="w-full px-3 py-2 border dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs" />
+                  <input type="text" required placeholder="Название" value={customSlotTitle} onChange={(e) => setCustomSlotTitle(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-xl text-xs dark:bg-slate-800" />
                   <button type="submit" className="w-full py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl">Добавить</button>
                 </form>
               </div>
             )}
 
             {/* НАВИГАЦИЯ */}
-            <nav className={`fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 grid ${isUserAdmin ? 'grid-cols-5' : 'grid-cols-4'} py-2 z-30`}>
-              <button onClick={() => setTab('SCHEDULE')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'SCHEDULE' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>
+            <nav className={`fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white dark:bg-slate-900 border-t grid ${isUserAdmin ? 'grid-cols-4' : 'grid-cols-3'} py-2 z-30`}>
+              <button onClick={() => setTab('TODAY')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'TODAY' ? 'text-indigo-600' : 'text-slate-400'}`}>
+                <span>📌</span><span>Сегодня</span>
+              </button>
+              <button onClick={() => setTab('SCHEDULE')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'SCHEDULE' ? 'text-indigo-600' : 'text-slate-400'}`}>
                 <span>📅</span><span>Календарь</span>
               </button>
-              <button onClick={() => setTab('STATS')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'STATS' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>
-                <span>📊</span><span>Таблица</span>
-              </button>
-              <button onClick={() => setTab('DEBTS')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'DEBTS' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>
-                <span>🤝</span><span>Долги ({totalActiveDebts})</span>
+              <button onClick={() => setTab('STATS')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'STATS' ? 'text-indigo-600' : 'text-slate-400'}`}>
+                <span>📊</span><span>Нагрузки</span>
               </button>
               {isUserAdmin && (
-                <button onClick={() => setTab('TASKS')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'TASKS' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>
-                  <span>⚙️</span><span>Нагрузки</span>
+                <button onClick={() => setTab('TASKS')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'TASKS' ? 'text-indigo-600' : 'text-slate-400'}`}>
+                  <span>⚙️</span><span>Правила</span>
                 </button>
               )}
-              <button onClick={() => setTab('CLOUD')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'CLOUD' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>
+              <button onClick={() => setTab('CLOUD')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'CLOUD' ? 'text-indigo-600' : 'text-slate-400'}`}>
                 <span>☁️</span><span>Архив</span>
               </button>
             </nav>
