@@ -13,9 +13,7 @@
   <!-- Tailwind CSS с поддержкой Dark Mode -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    tailwind.config = {
-      darkMode: 'class',
-    };
+    tailwind.config = { darkMode: 'class' };
   </script>
   <!-- React & Babel -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -38,18 +36,11 @@
       tg.expand();
     }
     const haptic = (type = 'light') => {
-      try {
-        tg?.HapticFeedback?.impactOccurred(type);
-      } catch (e) {}
+      try { tg?.HapticFeedback?.impactOccurred(type); } catch (e) {}
     };
 
     // СПИСОК TELEGRAM ID АДМИНИСТРАТОРОВ (4 ЧЕЛОВЕКА)
-    const ADMIN_TELEGRAM_IDS = [
-      7032931171,
-      8908389240,
-      8654413624,
-      1017627172
-    ];
+    const ADMIN_TELEGRAM_IDS = [7032931171, 8908389240, 8654413624, 1017627172];
 
     const currentTelegramId = Number(
       tg?.initDataUnsafe?.user?.id || localStorage.getItem('bat_saved_admin_id') || 0
@@ -136,7 +127,6 @@
       return d.toLocaleDateString('ru-RU', { weekday: 'short', day: '2-digit', month: 'short' });
     };
 
-    // Подсветка текста при поиске
     function HighlightText({ text, query }) {
       if (!query || !query.trim()) return <span>{text}</span>;
       const q = query.trim();
@@ -145,9 +135,7 @@
         <span>
           {parts.map((part, i) =>
             part.toLowerCase() === q.toLowerCase() ? (
-              <mark key={i} className="bg-amber-300 text-slate-950 rounded px-0.5 font-extrabold">
-                {part}
-              </mark>
+              <mark key={i} className="bg-amber-300 text-slate-950 rounded px-0.5 font-extrabold">{part}</mark>
             ) : (
               <span key={i}>{part}</span>
             )
@@ -156,7 +144,7 @@
       );
     }
 
-    // SUPABASE КОНФИГУРАЦИЯ И REALTIME КЛИЕНТ
+    // SUPABASE КОНФИГУРАЦИЯ
     const SUPA_URL = 'https://yasxjwbyhiryslkwfhof.supabase.co';
     const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlhc3hqd2J5aGlyeXNsa3dmaG9mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxNjE5NjUsImV4cCI6MjEwNzczNzk2NX0.WB4ANU1rdyXsF43aRNuXZ1bchUfhdZ4BNahTu6vtnPE';
     const ROOM_CODE = 'battery_main';
@@ -168,57 +156,54 @@
     function BatteryDutyApp() {
       const todayISO = useMemo(() => toISO(new Date()), []);
 
-      const [tab, setTab] = useState('SCHEDULE'); // SCHEDULE | STATS | DEBTS | TASKS | CLOUD
+      const [tab, setTab] = useState('SCHEDULE');
       const [darkMode, setDarkMode] = useState(() => localStorage.getItem('bat_dark') === '1');
       const [toast, setToast] = useState(null);
       const [cloudStatus, setCloudStatus] = useState('⏳ Синхронизация...');
 
-      // Навигация по календарю (выбранный месяц и фильтр отображения дней)
       const [calendarMonthISO, setCalendarMonthISO] = useState(() => {
         const now = new Date();
         return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
       });
       const [selectedDayISO, setSelectedDayISO] = useState(() => toISO(new Date()));
-      const [dayFilterMode, setDayFilterMode] = useState('ALL_MONTH'); // ALL_MONTH | SINGLE_DAY
+      const [dayFilterMode, setDayFilterMode] = useState('ALL_MONTH');
 
-      // Состояния данных
       const [members, setMembers] = useState(() => {
-        const s = localStorage.getItem('bat_v9_members') || localStorage.getItem('bat_v8_members');
+        const s = localStorage.getItem('bat_v9_members');
         return s ? JSON.parse(s) : INITIAL_MEMBERS;
       });
       const [taskTemplates, setTaskTemplates] = useState(() => {
-        const s = localStorage.getItem('bat_v9_templates') || localStorage.getItem('bat_v8_templates');
+        const s = localStorage.getItem('bat_v9_templates');
         return s ? JSON.parse(s) : INITIAL_TEMPLATES;
       });
       const [schedules, setSchedules] = useState(() => {
-        const s = localStorage.getItem('bat_v9_schedules') || localStorage.getItem('bat_v8_schedules');
+        const s = localStorage.getItem('bat_v9_schedules');
         return s ? JSON.parse(s) : {};
       });
       const [debts, setDebts] = useState(() => {
-        const s = localStorage.getItem('bat_v9_debts') || localStorage.getItem('bat_v8_debts');
+        const s = localStorage.getItem('bat_v9_debts');
         return s ? JSON.parse(s) : [];
       });
       const [batteryWeight, setBatteryWeight] = useState(() => {
-        const s = localStorage.getItem('bat_v9_bweight') || localStorage.getItem('bat_v8_bweight');
+        const s = localStorage.getItem('bat_v9_bweight');
         return s !== null ? Number(s) : 0.5;
       });
       const [protectRestDay, setProtectRestDay] = useState(true);
       const [logs, setLogs] = useState(() => {
-        const s = localStorage.getItem('bat_v9_logs') || localStorage.getItem('bat_v8_logs');
+        const s = localStorage.getItem('bat_v9_logs');
         return s ? JSON.parse(s) : [];
       });
       const [backups, setBackups] = useState(() => {
-        const s = localStorage.getItem('bat_v9_backups') || localStorage.getItem('bat_v8_backups');
+        const s = localStorage.getItem('bat_v9_backups');
         return s ? JSON.parse(s) : [];
       });
 
       const lastSyncTimestampRef = useRef(0);
 
-      // Фильтры таблицы статистики
       const [statSquadFilter, setStatSquadFilter] = useState(0);
       const [statStatusFilter, setStatStatusFilter] = useState('ALL');
       const [statTaskFilter, setStatTaskFilter] = useState('ALL');
-      const [statDateScope, setStatDateScope] = useState('ALL'); // ALL | MONTH | CUSTOM
+      const [statDateScope, setStatDateScope] = useState('ALL');
       const [statCustomFrom, setStatCustomFrom] = useState(() => {
         const now = new Date();
         return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
@@ -227,7 +212,6 @@
       const [statSearch, setStatSearch] = useState('');
       const [statSortBy, setStatSortBy] = useState('SCORE_DESC');
 
-      // Модалки
       const [confirmDialog, setConfirmDialog] = useState(null);
       const [recalcModalOpen, setRecalcModalOpen] = useState(false);
       const [modalSlot, setModalSlot] = useState(null);
@@ -238,17 +222,12 @@
       const [customSlotWeight, setCustomSlotWeight] = useState(1.0);
       const [testResults, setTestResults] = useState(null);
 
-      const [manualDebtor, setManualDebtor] = useState('m01');
-      const [manualCreditor, setManualCreditor] = useState('m06');
       const [newTplTitle, setNewTplTitle] = useState('');
       const [newTplCount, setNewTplCount] = useState(1);
       const [newTplWeight, setNewTplWeight] = useState(1.0);
 
-      useEffect(() => {
-        localStorage.setItem('bat_dark', darkMode ? '1' : '0');
-      }, [darkMode]);
+      useEffect(() => { localStorage.setItem('bat_dark', darkMode ? '1' : '0'); }, [darkMode]);
 
-      // Сохранение в LocalStorage
       useEffect(() => localStorage.setItem('bat_v9_members', JSON.stringify(members)), [members]);
       useEffect(() => localStorage.setItem('bat_v9_templates', JSON.stringify(taskTemplates)), [taskTemplates]);
       useEffect(() => localStorage.setItem('bat_v9_schedules', JSON.stringify(schedules)), [schedules]);
@@ -257,48 +236,43 @@
       useEffect(() => localStorage.setItem('bat_v9_logs', JSON.stringify(logs)), [logs]);
       useEffect(() => localStorage.setItem('bat_v9_backups', JSON.stringify(backups)), [backups]);
 
-      const showToast = (msg) => {
-        setToast(msg);
-        setTimeout(() => setToast(null), 2800);
-      };
+      // Блокировка скролла при открытых модалках
+      useEffect(() => {
+        const anyModal =
+          Boolean(confirmDialog) || recalcModalOpen || Boolean(modalSlot) ||
+          Boolean(batteryModalDate) || Boolean(addSlotDate);
+        document.body.style.overflow = anyModal ? 'hidden' : '';
+        return () => { document.body.style.overflow = ''; };
+      }, [confirmDialog, recalcModalOpen, modalSlot, batteryModalDate, addSlotDate]);
 
+      const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2800); };
       const getMember = (id, list = members) => list.find((m) => m.id === id);
       const getName = (id, list = members) => {
         const m = getMember(id, list);
         return m ? `${m.fullName} (${m.squad} отд.)` : 'Не назначен';
       };
 
-      // Информация о выбранном месяце календаря (все даты месяца с 1 по 28/30/31)
       const currentMonthInfo = useMemo(() => {
         const [y, m] = calendarMonthISO.split('-').map(Number);
         const firstDay = new Date(y, m - 1, 1);
         const daysInMonth = new Date(y, m, 0).getDate();
-        const startOffset = (firstDay.getDay() + 6) % 7; // Пн = 0 .. Вс = 6
-
+        const startOffset = (firstDay.getDay() + 6) % 7;
         const datesList = [];
         const cells = [];
         for (let i = 0; i < startOffset; i++) cells.push(null);
-
         for (let d = 1; d <= daysInMonth; d++) {
           const iso = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
           datesList.push(iso);
           cells.push({ dayNum: d, iso });
         }
-
         const monthTitle = firstDay.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
         return {
-          year: y,
-          month: m,
-          firstDateISO: datesList[0],
-          lastDateISO: datesList[datesList.length - 1],
-          daysInMonth,
-          datesList,
-          cells,
-          monthTitle,
+          year: y, month: m,
+          firstDateISO: datesList[0], lastDateISO: datesList[datesList.length - 1],
+          daysInMonth, datesList, cells, monthTitle,
         };
       }, [calendarMonthISO]);
 
-      // Переключение месяцев (Прошлый / Будущий / Сегодня)
       const changeMonth = (delta) => {
         haptic('light');
         const [y, m] = calendarMonthISO.split('-').map(Number);
@@ -322,25 +296,50 @@
         }, 100);
       };
 
-      // =========================================================
-      // ОБЛАЧНАЯ СИНХРОНИЗАЦИЯ SUPABASE (REALTIME + ЗАЩИТА ИСТОРИИ)
-      // =========================================================
+      // ============ СИНХРОНИЗАЦИЯ ============
       const applyRemoteState = (st, updatedAtStr) => {
-        if (!st) return;
+        if (!st || typeof st !== 'object') return;
         const remoteTs = updatedAtStr ? new Date(updatedAtStr).getTime() : Date.now();
         if (remoteTs <= lastSyncTimestampRef.current) return;
         lastSyncTimestampRef.current = remoteTs;
 
-        if (st.members) setMembers(st.members);
-        if (st.taskTemplates) setTaskTemplates(st.taskTemplates);
-        // Объединяем расписание, чтобы ни один прошлый день никогда не потерялся
+        if (Array.isArray(st.members)) setMembers(st.members);
+        if (Array.isArray(st.taskTemplates)) setTaskTemplates(st.taskTemplates);
+
         if (st.schedules) {
-          setSchedules((prev) => ({ ...prev, ...st.schedules }));
+          setSchedules((prev) => {
+            const merged = { ...prev, ...st.schedules };
+            Object.keys(merged).forEach((d) => {
+              const day = merged[d];
+              if (day?.batteryDutyIds) day.batteryDutyIds = Array.from(new Set(day.batteryDutyIds));
+            });
+            return merged;
+          });
         }
-        if (st.debts) setDebts(st.debts);
+
+        if (Array.isArray(st.debts)) {
+          setDebts((prev) => {
+            const byId = new Map(prev.map((d) => [d.id, d]));
+            st.debts.forEach((rd) => {
+              const local = byId.get(rd.id);
+              if (!local || (rd.count || 0) >= (local.count || 0)) byId.set(rd.id, rd);
+            });
+            return Array.from(byId.values()).filter((d) => (d.count || 0) > 0);
+          });
+        }
+
         if (st.batteryWeight !== undefined) setBatteryWeight(st.batteryWeight);
-        if (st.logs) setLogs(st.logs);
-        if (st.backups) setBackups(st.backups);
+
+        if (Array.isArray(st.logs)) {
+          setLogs((prev) => {
+            const byId = new Map(prev.map((l) => [l.id, l]));
+            st.logs.forEach((rl) => { if (!byId.has(rl.id)) byId.set(rl.id, rl); });
+            return Array.from(byId.values()).slice(0, 100);
+          });
+        }
+
+        if (Array.isArray(st.backups)) setBackups(st.backups);
+
         setCloudStatus('🟢 Live-синхронизация активна');
       };
 
@@ -369,16 +368,9 @@
               Authorization: `Bearer ${SUPA_KEY}`,
               Prefer: 'resolution=merge-duplicates',
             },
-            body: JSON.stringify({
-              room_code: ROOM_CODE,
-              state_json: nextState,
-              updated_at: nowIso,
-            }),
+            body: JSON.stringify({ room_code: ROOM_CODE, state_json: nextState, updated_at: nowIso }),
           });
-          if (!res.ok) {
-            setCloudStatus(`❌ Ошибка сохранения (${res.status})`);
-            return false;
-          }
+          if (!res.ok) { setCloudStatus(`❌ Ошибка сохранения (${res.status})`); return false; }
           setCloudStatus('🟢 Все изменения синхронизированы');
           return true;
         } catch (e) {
@@ -392,17 +384,11 @@
           if (!silent) setCloudStatus('⏳ Загрузка из облака...');
           const res = await fetch(
             `${SUPA_URL}/rest/v1/duty_sync?room_code=eq.${ROOM_CODE}&select=state_json,updated_at`,
-            {
-              headers: {
-                apikey: SUPA_KEY,
-                Authorization: `Bearer ${SUPA_KEY}`,
-                'Cache-Control': 'no-cache',
-              },
-            }
+            { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Cache-Control': 'no-cache' } }
           );
           if (!res.ok) return;
           const data = await res.json();
-          if (data?.[0]?.state_json) {
+          if (data?.[0]?.state_json && typeof data[0].state_json === 'object') {
             applyRemoteState(data[0].state_json, data[0].updated_at);
           }
         } catch (e) {
@@ -412,27 +398,18 @@
 
       useEffect(() => {
         pullFromCloudNow(false);
-
         let channel = null;
         if (supabaseClient) {
           channel = supabaseClient
             .channel('public:duty_sync')
-            .on(
-              'postgres_changes',
+            .on('postgres_changes',
               { event: '*', schema: 'public', table: 'duty_sync', filter: `room_code=eq.${ROOM_CODE}` },
               (payload) => {
-                if (payload?.new?.state_json) {
-                  applyRemoteState(payload.new.state_json, payload.new.updated_at);
-                }
+                if (payload?.new?.state_json) applyRemoteState(payload.new.state_json, payload.new.updated_at);
               }
-            )
-            .subscribe();
+            ).subscribe();
         }
-
-        const interval = setInterval(() => {
-          pullFromCloudNow(true);
-        }, 5000);
-
+        const interval = setInterval(() => { pullFromCloudNow(true); }, 5000);
         return () => {
           clearInterval(interval);
           if (channel && supabaseClient) supabaseClient.removeChannel(channel);
@@ -441,18 +418,12 @@
 
       const createLogAndBackup = (actionTitle, detailsText, createSnapshot = false) => {
         const timeStr = new Date().toLocaleString('ru-RU', {
-          day: '2-digit',
-          month: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
+          day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
         });
         const author = tg?.initDataUnsafe?.user?.first_name || `ID:${currentTelegramId || 'Админ'}`;
         const newEntry = {
           id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
-          time: timeStr,
-          author,
-          action: actionTitle,
-          details: detailsText,
+          time: timeStr, author, action: actionTitle, details: detailsText,
         };
         const nextLogs = [newEntry, ...logs.slice(0, 99)];
         setLogs(nextLogs);
@@ -460,8 +431,7 @@
         let nextBackups = backups;
         if (createSnapshot) {
           const snap = {
-            id: `bk_${Date.now()}`,
-            time: timeStr,
+            id: `bk_${Date.now()}`, time: timeStr,
             label: `${actionTitle}: ${detailsText.slice(0, 40)}`,
             schedules: JSON.parse(JSON.stringify(schedules)),
             debts: JSON.parse(JSON.stringify(debts)),
@@ -470,7 +440,6 @@
           nextBackups = [snap, ...backups.slice(0, 9)];
           setBackups(nextBackups);
         }
-
         return { nextLogs, nextBackups };
       };
 
@@ -510,29 +479,17 @@
       const allWorkloadTitles = useMemo(() => {
         const titles = new Set(taskTemplates.map((t) => t.title));
         Object.values(schedules).forEach((day) => {
-          (day?.slots || []).forEach((s) => {
-            if (s.title) titles.add(s.title);
-          });
+          (day?.slots || []).forEach((s) => { if (s.title) titles.add(s.title); });
         });
         return Array.from(titles);
       }, [taskTemplates, schedules]);
 
-      // =========================================================
-      // РАСЧЕТ СТАТИСТИКИ И ИНДИКАТОРА РАВНОМЕРНОСТИ
-      // =========================================================
       const statsMap = useMemo(() => {
         const map = {};
         members.forEach((m) => {
           map[m.id] = {
-            ...m,
-            regularShifts: 0,
-            penaltyShifts: 0,
-            batteryCount: 0,
-            totalAll: 0,
-            score: m.baseScore || 0,
-            owesCount: 0,
-            owedToMeCount: 0,
-            byTitle: {},
+            ...m, regularShifts: 0, penaltyShifts: 0, batteryCount: 0,
+            totalAll: 0, score: m.baseScore || 0, owesCount: 0, owedToMeCount: 0, byTitle: {},
           };
         });
 
@@ -542,10 +499,8 @@
           } else if (statDateScope === 'CUSTOM') {
             if (date < statCustomFrom || date > statCustomTo) return;
           }
-
           const day = schedules[date];
           if (!day) return;
-
           (day.batteryDutyIds || []).forEach((mId) => {
             if (map[mId]) {
               map[mId].batteryCount += 1;
@@ -553,20 +508,14 @@
               map[mId].score += Number(batteryWeight) || 0;
             }
           });
-
           (day.slots || []).forEach((s) => {
             if (!s.memberId || !map[s.memberId]) return;
             const st = map[s.memberId];
             st.totalAll += 1;
             const w = Number(s.weight) || 1.0;
             st.byTitle[s.title] = (st.byTitle[s.title] || 0) + 1;
-
-            if (s.isPenalty) {
-              st.penaltyShifts += 1;
-            } else {
-              st.regularShifts += 1;
-              st.score += w;
-            }
+            if (s.isPenalty) st.penaltyShifts += 1;
+            else { st.regularShifts += 1; st.score += w; }
           });
         });
 
@@ -574,21 +523,18 @@
           if (map[d.debtorId]) map[d.debtorId].owesCount += d.count;
           if (map[d.creditorId]) map[d.creditorId].owedToMeCount += d.count;
         });
-
         return map;
       }, [members, schedules, batteryWeight, debts, statDateScope, currentMonthInfo, statCustomFrom, statCustomTo]);
 
       const fairnessMetrics = useMemo(() => {
         const activeList = Object.values(statsMap).filter((m) => m.status === 'ACTIVE');
         if (activeList.length === 0) return { index: 100, stdDev: 0, min: 0, max: 0, avg: 0 };
-
         const scores = activeList.map((m) => m.score);
         const min = Math.min(...scores);
         const max = Math.max(...scores);
         const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
         const variance = scores.reduce((acc, s) => acc + Math.pow(s - avg, 2), 0) / scores.length;
         const stdDev = Math.sqrt(variance);
-
         const index = Math.max(0, Math.min(100, Math.round(100 - stdDev * 18)));
         return { index, stdDev, min, max, avg };
       }, [statsMap]);
@@ -598,8 +544,11 @@
           .filter((st) => {
             if (statSquadFilter !== 0 && st.squad !== statSquadFilter) return false;
             if (statStatusFilter !== 'ALL' && st.status !== statStatusFilter) return false;
-            if (statSearch.trim() && !st.fullName.toLowerCase().includes(statSearch.trim().toLowerCase())) {
-              return false;
+            if (statSearch.trim() && !st.fullName.toLowerCase().includes(statSearch.trim().toLowerCase())) return false;
+            if (statTaskFilter !== 'ALL') {
+              if (statTaskFilter === 'BATTERY' && (st.batteryCount || 0) === 0) return false;
+              if (statTaskFilter === 'PENALTY' && (st.penaltyShifts || 0) === 0) return false;
+              if (statTaskFilter !== 'BATTERY' && statTaskFilter !== 'PENALTY' && (st.byTitle[statTaskFilter] || 0) === 0) return false;
             }
             return true;
           })
@@ -620,29 +569,19 @@
           });
       }, [statsMap, statSquadFilter, statStatusFilter, statSearch, statSortBy, statTaskFilter]);
 
-      // =========================================================
-      // АЛГОРИТМ СПРАВЕДЛИВОЙ ГЕНЕРАЦИИ (СОХРАНЯЕТ ПРОШЛЫЕ ДНИ!)
-      // =========================================================
       const runScheduleGenerator = (
-        baseSchedules,
-        keepExistingSlots,
-        periodStart,
-        periodDays,
-        currentMembers,
-        currentTemplates,
-        currentDebts
+        baseSchedules, keepExistingSlots, periodStart, periodDays,
+        currentMembers, currentTemplates, currentDebts
       ) => {
-        // Клонируем ВСЮ историю расписания (никакие прошлые дни не удаляются!)
         const updated = JSON.parse(JSON.stringify(baseSchedules));
         const tempScore = {};
         const tempRoleCount = {};
         const lastDate = {};
-
         let workingDebts = JSON.parse(JSON.stringify(currentDebts));
         let autoRepaidCount = 0;
 
         currentMembers.forEach((m) => {
-          tempScore[m.id] = m.baseScore || 0;
+          tempScore[m.id] = Number(m.baseScore) || 0;
           tempRoleCount[m.id] = {};
         });
 
@@ -654,7 +593,6 @@
           period.push(toISO(d));
         }
 
-        // 1. Учитываем всю историю смен до начала пересчитываемого периода
         Object.keys(updated).sort().forEach((dKey) => {
           if (dKey < period[0]) {
             const day = updated[dKey];
@@ -676,10 +614,9 @@
           }
         });
 
-        // 2. Посуточная балансировка выбранного диапазона
         period.forEach((dateStr) => {
           const existing = updated[dateStr];
-          const batteryDutyIds = existing?.batteryDutyIds || [];
+          const batteryDutyIds = Array.from(new Set(existing?.batteryDutyIds || []));
 
           batteryDutyIds.forEach((mId) => {
             if (tempScore[mId] !== undefined) {
@@ -693,19 +630,13 @@
             for (let c = 0; c < tpl.count; c++) {
               templateSlots.push({
                 id: `${dateStr}_${tpl.id}_${c}_${Math.random().toString(36).slice(2, 5)}`,
-                date: dateStr,
-                title: tpl.title,
-                weight: tpl.weight,
-                memberId: null,
-                isPenalty: false,
-                isManual: false,
-                repaidForName: null,
+                date: dateStr, title: tpl.title, weight: tpl.weight,
+                memberId: null, isPenalty: false, isManual: false, repaidForName: null,
               });
             }
           });
 
           let slots = templateSlots;
-          // Если выбран режим "Заполнить пустые", сохраняем ВСЕ уже назначенные смены (и прошлые, и ручные)
           if (existing && keepExistingSlots && existing.slots && existing.slots.length > 0) {
             slots = existing.slots.map((s) => {
               if (s.memberId && batteryDutyIds.includes(s.memberId)) {
@@ -721,8 +652,7 @@
               usedToday.add(slot.memberId);
               if (!slot.isPenalty && tempScore[slot.memberId] !== undefined) {
                 tempScore[slot.memberId] += Number(slot.weight) || 1;
-                tempRoleCount[slot.memberId][slot.title] =
-                  (tempRoleCount[slot.memberId][slot.title] || 0) + 1;
+                tempRoleCount[slot.memberId][slot.title] = (tempRoleCount[slot.memberId][slot.title] || 0) + 1;
               }
               lastDate[slot.memberId] = dateStr;
             }
@@ -730,7 +660,6 @@
 
           slots.forEach((slot) => {
             if (slot.memberId) return;
-
             const eligible = currentMembers.filter((m) => {
               if (m.status !== 'ACTIVE') return false;
               if (usedToday.has(m.id)) return false;
@@ -755,10 +684,7 @@
               let repaidForName = null;
 
               const activeDebt = workingDebts.find(
-                (d) =>
-                  d.creditorId === chosen.id &&
-                  d.count > 0 &&
-                  eligible.some((el) => el.id === d.debtorId)
+                (d) => d.creditorId === chosen.id && d.count > 0 && eligible.some((el) => el.id === d.debtorId)
               );
 
               if (activeDebt) {
@@ -790,79 +716,45 @@
         };
       };
 
-      // Заполнить пустые дни выбранного месяца (прошлые и уже заполненные дни сохраняются!)
       const fillEmptyDaysInMonth = () => {
         if (!isUserAdmin) return;
         haptic('medium');
         const { nextLogs, nextBackups } = createLogAndBackup(
-          '⚡ Заполнение месяца',
-          `Заполнены пустые дни за ${currentMonthInfo.monthTitle}`,
-          true
+          '⚡ Заполнение месяца', `Заполнены пустые дни за ${currentMonthInfo.monthTitle}`, true
         );
-
         const { updatedSchedules, updatedDebts } = runScheduleGenerator(
-          schedules,
-          true, // сохраняем все уже стоящие назначения!
-          currentMonthInfo.firstDateISO,
-          currentMonthInfo.daysInMonth,
-          members,
-          taskTemplates,
-          debts
+          schedules, true, currentMonthInfo.firstDateISO, currentMonthInfo.daysInMonth,
+          members, taskTemplates, debts
         );
-
         setSchedules(updatedSchedules);
         setDebts(updatedDebts);
-        pushToCloudNow({
-          schedules: updatedSchedules,
-          debts: updatedDebts,
-          logs: nextLogs,
-          backups: nextBackups,
-        });
+        pushToCloudNow({ schedules: updatedSchedules, debts: updatedDebts, logs: nextLogs, backups: nextBackups });
         showToast(`✅ Пустые дни (${currentMonthInfo.monthTitle}) заполнены!`);
       };
 
-      // Пересчет с сохранением прошедших дней (или всего месяца)
       const executeRecalculate = (onlyFromToday) => {
         if (!isUserAdmin) return;
         haptic('medium');
-
         let startISO = currentMonthInfo.firstDateISO;
         let countDays = currentMonthInfo.daysInMonth;
-
         if (onlyFromToday && todayISO >= currentMonthInfo.firstDateISO && todayISO <= currentMonthInfo.lastDateISO) {
           startISO = todayISO;
           countDays = daysDiff(currentMonthInfo.lastDateISO, todayISO) + 1;
         }
-
         const { nextLogs, nextBackups } = createLogAndBackup(
           '🔄 Пересчет графика',
-          `Пересчитан период с ${startISO} (${countDays} дн.). Прошедшие дни сохранены.`,
-          true
+          `Пересчитан период с ${startISO} (${countDays} дн.). Прошедшие дни сохранены.`, true
         );
-
         const { updatedSchedules, updatedDebts } = runScheduleGenerator(
-          schedules,
-          false,
-          startISO,
-          countDays,
-          members,
-          taskTemplates,
-          debts
+          schedules, false, startISO, countDays, members, taskTemplates, debts
         );
-
         setSchedules(updatedSchedules);
         setDebts(updatedDebts);
-        pushToCloudNow({
-          schedules: updatedSchedules,
-          debts: updatedDebts,
-          logs: nextLogs,
-          backups: nextBackups,
-        });
+        pushToCloudNow({ schedules: updatedSchedules, debts: updatedDebts, logs: nextLogs, backups: nextBackups });
         setRecalcModalOpen(false);
         showToast('🔄 График пересчитан (прошлые дни сохранены)!');
       };
 
-      // Подтверждение перед очисткой суток
       const askConfirmClearDay = (dateStr) => {
         if (!isUserAdmin) return;
         setConfirmDialog({
@@ -872,14 +764,9 @@
           onConfirm: () => {
             haptic('medium');
             const { nextLogs, nextBackups } = createLogAndBackup(
-              '🗑 Очистка суток',
-              `Очищены все задачи на ${formatRuDate(dateStr)} (${dateStr})`,
-              true
+              '🗑 Очистка суток', `Очищены все задачи на ${formatRuDate(dateStr)} (${dateStr})`, true
             );
-            const nextSchedules = {
-              ...schedules,
-              [dateStr]: { date: dateStr, batteryDutyIds: [], slots: [] },
-            };
+            const nextSchedules = { ...schedules, [dateStr]: { date: dateStr, batteryDutyIds: [], slots: [] } };
             setSchedules(nextSchedules);
             pushToCloudNow({ schedules: nextSchedules, logs: nextLogs, backups: nextBackups });
             setConfirmDialog(null);
@@ -888,7 +775,6 @@
         });
       };
 
-      // Ручная замена / Подмена в долг / Штрафной наряд
       const handleAssignMember = (newMemberId) => {
         if (!isUserAdmin || !modalSlot) return;
         haptic('light');
@@ -896,7 +782,6 @@
         const oldMemberId = slot.memberId;
         const oldName = getName(oldMemberId);
         const newName = getName(newMemberId);
-
         const isPenalty = assignMode === 'PENALTY';
         const isDebtCover = assignMode === 'DEBT_COVER';
         let repaidLabel = null;
@@ -915,16 +800,13 @@
             );
             if (existIdx !== -1) {
               nextDebts[existIdx] = {
-                ...nextDebts[existIdx],
-                count: nextDebts[existIdx].count + 1,
+                ...nextDebts[existIdx], count: nextDebts[existIdx].count + 1,
                 lastReason: `${formatRuDate(date)} (${slot.title})`,
               };
             } else {
               nextDebts.push({
-                id: `debt_${Date.now()}`,
-                debtorId: oldMemberId,
-                creditorId: newMemberId,
-                count: 1,
+                id: `debt_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+                debtorId: oldMemberId, creditorId: newMemberId, count: 1,
                 lastReason: `${formatRuDate(date)} (${slot.title})`,
               });
             }
@@ -946,57 +828,37 @@
 
         const { nextLogs, nextBackups } = createLogAndBackup(
           isDebtCover ? '🤝 Подмена в долг' : isPenalty ? '⚠ Штрафной наряд' : '🔄 Замена в смене',
-          `${formatRuDate(date)} [${slot.title}]: ${oldName} → ${newName}`,
-          true
+          `${formatRuDate(date)} [${slot.title}]: ${oldName} → ${newName}`, true
         );
 
         setSchedules(nextSchedules);
         setDebts(nextDebts);
-        pushToCloudNow({
-          schedules: nextSchedules,
-          debts: nextDebts,
-          logs: nextLogs,
-          backups: nextBackups,
-        });
-
+        pushToCloudNow({ schedules: nextSchedules, debts: nextDebts, logs: nextLogs, backups: nextBackups });
         setModalSlot(null);
         showToast(`✅ Замена синхронизирована: ${newName}`);
       };
 
-      // Случайный выбор из наименее загруженных
       const replaceWithRandomLeastLoaded = (dateStr, slotObj, e) => {
         if (e) e.stopPropagation();
         if (!isUserAdmin) return;
         haptic('medium');
         const day = schedules[dateStr];
         if (!day) return;
-
         const usedToday = new Set([
           ...(day.batteryDutyIds || []),
           ...(day.slots || []).map((s) => s.memberId).filter(Boolean),
         ]);
-
         const eligible = members.filter(
-          (m) =>
-            m.status === 'ACTIVE' &&
-            !usedToday.has(m.id) &&
-            m.id !== slotObj.memberId &&
-            !isRecoveringFromBatteryDuty(m.id, dateStr)
+          (m) => m.status === 'ACTIVE' && !usedToday.has(m.id) &&
+            m.id !== slotObj.memberId && !isRecoveringFromBatteryDuty(m.id, dateStr)
         );
+        if (eligible.length === 0) { showToast('Нет свободных бойцов на этот день!'); return; }
 
-        if (eligible.length === 0) {
-          showToast('Нет свободных бойцов на этот день!');
-          return;
-        }
-
-        const sorted = eligible
-          .map((m) => ({ m, score: statsMap[m.id]?.score || 0 }))
+        const sorted = eligible.map((m) => ({ m, score: statsMap[m.id]?.score || 0 }))
           .sort((a, b) => a.score - b.score);
-
         const minScore = sorted[0].score;
         let pool = sorted.filter((x) => x.score <= minScore + 1.2);
         if (pool.length < 3) pool = sorted.slice(0, Math.min(4, sorted.length));
-
         const chosen = pool[Math.floor(Math.random() * pool.length)].m;
         const oldName = getName(slotObj.memberId);
         const newName = getName(chosen.id);
@@ -1010,13 +872,9 @@
             ),
           },
         };
-
         const { nextLogs, nextBackups } = createLogAndBackup(
-          '🎲 Случайная замена',
-          `${formatRuDate(dateStr)} [${slotObj.title}]: ${oldName} → ${newName}`,
-          true
+          '🎲 Случайная замена', `${formatRuDate(dateStr)} [${slotObj.title}]: ${oldName} → ${newName}`, true
         );
-
         setSchedules(nextSchedules);
         pushToCloudNow({ schedules: nextSchedules, logs: nextLogs, backups: nextBackups });
         showToast(`🎲 Выбран и синхронизирован: ${chosen.fullName}`);
@@ -1027,9 +885,11 @@
         if (!isUserAdmin) return;
         haptic('light');
         const day = schedules[dateStr] || { date: dateStr, batteryDutyIds: [], slots: [] };
-        const currentList = day.batteryDutyIds || [];
+        const currentList = Array.from(new Set(day.batteryDutyIds || []));
         const exists = currentList.includes(memberId);
-        const nextList = exists ? currentList.filter((id) => id !== memberId) : [...currentList, memberId];
+        const nextList = exists
+          ? currentList.filter((id) => id !== memberId)
+          : Array.from(new Set([...currentList, memberId]));
 
         const updatedSchedules = {
           ...schedules,
@@ -1041,27 +901,17 @@
           datesToCheck.forEach((dKey) => {
             const targetDay = updatedSchedules[dKey];
             if (!targetDay?.slots) return;
-
             const busy = new Set([
               ...(targetDay.batteryDutyIds || []),
               ...targetDay.slots.map((s) => s.memberId).filter(Boolean),
             ]);
-
             targetDay.slots = targetDay.slots.map((slot) => {
               if (slot.memberId !== memberId) return slot;
               const replacement = members
-                .filter(
-                  (m) =>
-                    m.status === 'ACTIVE' &&
-                    !busy.has(m.id) &&
-                    !isRecoveringFromBatteryDuty(m.id, dKey, updatedSchedules)
-                )
+                .filter((m) => m.status === 'ACTIVE' && !busy.has(m.id) &&
+                  !isRecoveringFromBatteryDuty(m.id, dKey, updatedSchedules))
                 .sort((a, b) => (statsMap[a.id]?.score || 0) - (statsMap[b.id]?.score || 0))[0];
-
-              if (replacement) {
-                busy.add(replacement.id);
-                return { ...slot, memberId: replacement.id, isManual: true };
-              }
+              if (replacement) { busy.add(replacement.id); return { ...slot, memberId: replacement.id, isManual: true }; }
               return { ...slot, memberId: null };
             });
           });
@@ -1069,8 +919,7 @@
 
         const { nextLogs, nextBackups } = createLogAndBackup(
           '🛡️ Наряд по батарее',
-          `${formatRuDate(dateStr)}: ${getName(memberId)} (${exists ? 'снят' : 'назначен'})`,
-          true
+          `${formatRuDate(dateStr)}: ${getName(memberId)} (${exists ? 'снят' : 'назначен'})`, true
         );
         setSchedules(updatedSchedules);
         pushToCloudNow({ schedules: updatedSchedules, logs: nextLogs, backups: nextBackups });
@@ -1084,16 +933,10 @@
           ...(day.batteryDutyIds || []),
           ...(day.slots || []).map((s) => s.memberId).filter(Boolean),
         ]);
-
         const eligible = members
-          .filter(
-            (m) =>
-              m.status === 'ACTIVE' &&
-              !usedToday.has(m.id) &&
-              !isRecoveringFromBatteryDuty(m.id, addSlotDate)
-          )
+          .filter((m) => m.status === 'ACTIVE' && !usedToday.has(m.id) &&
+            !isRecoveringFromBatteryDuty(m.id, addSlotDate))
           .sort((a, b) => (statsMap[a.id]?.score || 0) - (statsMap[b.id]?.score || 0));
-
         const chosen = eligible[0] || null;
         const newSlot = {
           id: `${addSlotDate}_custom_${Date.now()}`,
@@ -1101,18 +944,15 @@
           title: customSlotTitle.trim(),
           weight: Number(customSlotWeight) || 1.0,
           memberId: chosen ? chosen.id : null,
-          isPenalty: false,
-          isManual: true,
+          isPenalty: false, isManual: true,
         };
-
         const nextSchedules = {
           ...schedules,
           [addSlotDate]: { ...day, slots: [...(day.slots || []), newSlot] },
         };
         const { nextLogs } = createLogAndBackup(
           '➕ Добавлена задача',
-          `${formatRuDate(addSlotDate)}: «${newSlot.title}» → ${chosen ? getName(chosen.id) : '—'}`,
-          false
+          `${formatRuDate(addSlotDate)}: «${newSlot.title}» → ${chosen ? getName(chosen.id) : '—'}`, false
         );
         setSchedules(nextSchedules);
         pushToCloudNow({ schedules: nextSchedules, logs: nextLogs });
@@ -1133,8 +973,7 @@
         };
         const { nextLogs, nextBackups } = createLogAndBackup(
           '🗑 Удалена задача',
-          `${formatRuDate(dateStr)}: удалена «${slotObj.title}» (${getName(slotObj.memberId)})`,
-          true
+          `${formatRuDate(dateStr)}: удалена «${slotObj.title}» (${getName(slotObj.memberId)})`, true
         );
         setSchedules(nextSchedules);
         pushToCloudNow({ schedules: nextSchedules, logs: nextLogs, backups: nextBackups });
@@ -1142,7 +981,6 @@
         if (modalSlot) setModalSlot(null);
       };
 
-      // Встроенные тесты алгоритма
       const runBuiltInUnitTests = () => {
         const results = [];
         try {
@@ -1150,9 +988,7 @@
           const counts1 = {};
           INITIAL_MEMBERS.forEach((m) => (counts1[m.id] = 0));
           Object.values(r1.updatedSchedules).forEach((d) =>
-            d.slots.forEach((s) => {
-              if (s.memberId) counts1[s.memberId] += s.weight;
-            })
+            d.slots.forEach((s) => { if (s.memberId) counts1[s.memberId] += s.weight; })
           );
           const vals1 = Object.values(counts1);
           const spread1 = Math.max(...vals1) - Math.min(...vals1);
@@ -1163,24 +999,14 @@
           });
 
           const manualSeed = {
-            '2026-10-01': {
-              date: '2026-10-01',
-              batteryDutyIds: [],
-              slots: [{ id: 's1', date: '2026-10-01', title: 'Дежурный по классу', weight: 1.2, memberId: 'm01', isManual: true, isPenalty: false }],
-            },
-            '2026-10-02': {
-              date: '2026-10-02',
-              batteryDutyIds: [],
-              slots: [{ id: 's2', date: '2026-10-02', title: 'Дежурный по классу', weight: 1.2, memberId: 'm01', isManual: true, isPenalty: false }],
-            },
+            '2026-10-01': { date: '2026-10-01', batteryDutyIds: [], slots: [{ id: 's1', date: '2026-10-01', title: 'Дежурный по классу', weight: 1.2, memberId: 'm01', isManual: true, isPenalty: false }] },
+            '2026-10-02': { date: '2026-10-02', batteryDutyIds: [], slots: [{ id: 's2', date: '2026-10-02', title: 'Дежурный по классу', weight: 1.2, memberId: 'm01', isManual: true, isPenalty: false }] },
           };
           const r2 = runScheduleGenerator(manualSeed, true, '2026-10-01', 10, INITIAL_MEMBERS, INITIAL_TEMPLATES, []);
           let m01AutoAssignedAfterManual = 0;
           for (let d = 3; d <= 10; d++) {
             const iso = `2026-10-${String(d).padStart(2, '0')}`;
-            r2.updatedSchedules[iso].slots.forEach((s) => {
-              if (s.memberId === 'm01') m01AutoAssignedAfterManual++;
-            });
+            r2.updatedSchedules[iso].slots.forEach((s) => { if (s.memberId === 'm01') m01AutoAssignedAfterManual++; });
           }
           results.push({
             name: '2. Баланс после ручных замен (учет переработки)',
@@ -1188,9 +1014,7 @@
             detail: `Доп. смен у перегруженного после ручных замен: ${m01AutoAssignedAfterManual} (ожидалось 0)`,
           });
 
-          const batSeed = {
-            '2026-10-05': { date: '2026-10-05', batteryDutyIds: ['m05'], slots: [] },
-          };
+          const batSeed = { '2026-10-05': { date: '2026-10-05', batteryDutyIds: ['m05'], slots: [] } };
           const r3 = runScheduleGenerator(batSeed, true, '2026-10-05', 3, INITIAL_MEMBERS, INITIAL_TEMPLATES, []);
           const onDayD = r3.updatedSchedules['2026-10-05'].slots.some((s) => s.memberId === 'm05');
           const onDayD1 = r3.updatedSchedules['2026-10-06'].slots.some((s) => s.memberId === 'm05');
@@ -1205,35 +1029,12 @@
         setTestResults(results);
       };
 
-      // Все дни выбранного месяца (прошлые дни НИКОГДА не удаляются и видны с 1 по 31 число)
       const visibleDays = useMemo(() => {
-        const datesToShow =
-          dayFilterMode === 'SINGLE_DAY' ? [selectedDayISO] : currentMonthInfo.datesList;
-        return datesToShow.map(
-          (iso) => schedules[iso] || { date: iso, batteryDutyIds: [], slots: [] }
-        );
+        const datesToShow = dayFilterMode === 'SINGLE_DAY' ? [selectedDayISO] : currentMonthInfo.datesList;
+        return datesToShow.map((iso) => schedules[iso] || { date: iso, batteryDutyIds: [], slots: [] });
       }, [schedules, currentMonthInfo, dayFilterMode, selectedDayISO]);
 
       const totalActiveDebts = debts.reduce((acc, d) => acc + d.count, 0);
-
-      const shareToTelegramChat = () => {
-        const lines = [`📋 *ГРАФИК НАРЯДОВ (${currentMonthInfo.monthTitle.toUpperCase()})*`, ''];
-        visibleDays.forEach((d) => {
-          if ((!d.slots || d.slots.length === 0) && (!d.batteryDutyIds || d.batteryDutyIds.length === 0)) return;
-          lines.push(`📅 *${formatRuDate(d.date).toUpperCase()}* (${d.date})`);
-          if (d.batteryDutyIds?.length > 0) {
-            const bNames = d.batteryDutyIds.map((id) => getMember(id)?.fullName).join(', ');
-            lines.push(`🛡️ *Наряд по батарее:* ${bNames}`);
-          }
-          (d.slots || []).forEach((s) => {
-            const extra = s.isPenalty ? ' [ШТРАФ]' : s.repaidForName ? ` [🤝 ${s.repaidForName}]` : '';
-            lines.push(`• ${s.title}: *${getName(s.memberId)}*${extra}`);
-          });
-          lines.push('');
-        });
-        navigator.clipboard.writeText(lines.join('\n'));
-        showToast('Сводка скопирована для чата!');
-      };
 
       return (
         <div className={darkMode ? 'dark' : ''}>
@@ -1244,16 +1045,14 @@
               </div>
             )}
 
-            {/* ШАПКА ПРИЛОЖЕНИЯ */}
+            {/* ШАПКА */}
             <header className="bg-indigo-700 dark:bg-slate-900 text-white px-4 pt-3.5 pb-3 sticky top-0 z-20 shadow border-b border-indigo-800 dark:border-slate-800">
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <h1 className="text-base font-extrabold tracking-tight">Контроль Взвода</h1>
                     {isUserAdmin ? (
-                      <span className="text-[10px] bg-amber-400 text-slate-950 px-1.5 py-0.5 rounded font-extrabold">
-                        👑 Редактор
-                      </span>
+                      <span className="text-[10px] bg-amber-400 text-slate-950 px-1.5 py-0.5 rounded font-extrabold">👑 Редактор</span>
                     ) : (
                       <button
                         onClick={unlockAdminAccess}
@@ -1274,28 +1073,16 @@
                   >
                     {darkMode ? '☀️' : '🌙'}
                   </button>
-                  <button
-                    onClick={shareToTelegramChat}
-                    className="bg-white/15 active:bg-white/25 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl border border-white/20"
-                  >
-                    📤 В чат
-                  </button>
                 </div>
               </div>
 
-              {/* ИНДИКАТОР РАВНОМЕРНОСТИ В ШАПКЕ */}
               <div className="mt-2.5 pt-2 border-t border-white/15 flex items-center justify-between text-[11px]">
                 <div className="flex items-center gap-2">
                   <span className="text-indigo-100">Баланс справедливости:</span>
-                  <span
-                    className={`px-1.5 py-0.2 rounded font-extrabold ${
-                      fairnessMetrics.index >= 85
-                        ? 'bg-emerald-400 text-slate-950'
-                        : fairnessMetrics.index >= 70
-                        ? 'bg-amber-300 text-slate-950'
-                        : 'bg-rose-400 text-white'
-                    }`}
-                  >
+                  <span className={`px-1.5 py-0.2 rounded font-extrabold ${
+                    fairnessMetrics.index >= 85 ? 'bg-emerald-400 text-slate-950'
+                    : fairnessMetrics.index >= 70 ? 'bg-amber-300 text-slate-950'
+                    : 'bg-rose-400 text-white'}`}>
                     {fairnessMetrics.index}%
                   </span>
                 </div>
@@ -1305,206 +1092,134 @@
               </div>
             </header>
 
-            {/* =========================================================
-                ВКЛАДКА 1: ПОЛНОЦЕННЫЙ КАЛЕНДАРЬ (ПРОШЛЫЕ, ТЕКУЩИЙ И БУДУЩИЕ МЕСЯЦЫ)
-               ========================================================= */}
+            {/* ВКЛАДКА 1: КАЛЕНДАРЬ */}
             {tab === 'SCHEDULE' && (
               <div className="p-3 space-y-3">
-                {/* ВЕРХНЯЯ ПАНЕЛЬ КАЛЕНДАРЯ С ПЕРЕКЛЮЧЕНИЕМ МЕСЯЦЕВ */}
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-3 shadow-xs border border-slate-200 dark:border-slate-800 space-y-3">
-                  {/* Переключатель месяцев: Прошлый / Текущий / Будущий */}
                   <div className="flex items-center justify-between gap-1">
-                    <button
-                      onClick={() => changeMonth(-1)}
-                      className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 active:bg-slate-200 text-xs font-extrabold"
-                    >
+                    <button onClick={() => changeMonth(-1)} className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 active:bg-slate-200 text-xs font-extrabold">
                       ◀ Прошлый
                     </button>
-
                     <div className="text-center">
                       <div className="text-sm font-extrabold uppercase tracking-wide capitalize text-indigo-700 dark:text-indigo-400">
                         {currentMonthInfo.monthTitle}
                       </div>
-                      <button
-                        onClick={goToToday}
-                        className="text-[10px] font-bold text-slate-500 underline mt-0.5"
-                      >
+                      <button onClick={goToToday} className="text-[10px] font-bold text-slate-500 underline mt-0.5">
                         Перейти к Сегодня ({formatRuDate(todayISO)})
                       </button>
                     </div>
-
-                    <button
-                      onClick={() => changeMonth(1)}
-                      className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 active:bg-slate-200 text-xs font-extrabold"
-                    >
+                    <button onClick={() => changeMonth(1)} className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 active:bg-slate-200 text-xs font-extrabold">
                       Следующий ▶
                     </button>
                   </div>
 
-                  {/* СЕТКА КАЛЕНДАРЯ ВЫБРАННОГО МЕСЯЦА (Пн–Вс) */}
                   <div>
                     <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-extrabold uppercase text-slate-400 mb-1">
                       <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
                     </div>
                     <div className="grid grid-cols-7 gap-1">
                       {currentMonthInfo.cells.map((cell, idx) => {
-                        if (!cell) {
-                          return <div key={idx} className="h-12 rounded-xl bg-slate-50/50 dark:bg-slate-900/30" />;
-                        }
+                        if (!cell) return <div key={idx} className="h-12 rounded-xl bg-slate-50/50 dark:bg-slate-900/30" />;
                         const dayData = schedules[cell.iso];
                         const slotsCount = dayData?.slots?.filter((s) => s.memberId).length || 0;
                         const hasBat = (dayData?.batteryDutyIds?.length || 0) > 0;
                         const isToday = cell.iso === todayISO;
                         const isSelected = cell.iso === selectedDayISO && dayFilterMode === 'SINGLE_DAY';
                         const isPast = cell.iso < todayISO;
-
                         return (
                           <button
                             key={cell.iso}
                             onClick={() => {
                               setSelectedDayISO(cell.iso);
                               const el = document.getElementById(`day-card-${cell.iso}`);
-                              if (el) {
-                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                              } else {
-                                setDayFilterMode('SINGLE_DAY');
-                              }
+                              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              else setDayFilterMode('SINGLE_DAY');
                             }}
                             className={`h-12 rounded-xl border p-1 flex flex-col items-center justify-between transition relative ${
-                              isSelected
-                                ? 'border-2 border-indigo-600 bg-indigo-50 dark:bg-indigo-950'
-                                : isToday
-                                ? 'border-2 border-amber-500 bg-amber-50/60 dark:bg-amber-950/50'
-                                : slotsCount > 0 || hasBat
-                                ? isPast
-                                  ? 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 opacity-85'
-                                  : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80'
-                                : 'border-dashed border-slate-200 dark:border-slate-800 opacity-55'
-                            }`}
+                              isSelected ? 'border-2 border-indigo-600 bg-indigo-50 dark:bg-indigo-950'
+                              : isToday ? 'border-2 border-amber-500 bg-amber-50/60 dark:bg-amber-950/50'
+                              : slotsCount > 0 || hasBat
+                                ? isPast ? 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 opacity-85'
+                                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80'
+                                : 'border-dashed border-slate-200 dark:border-slate-800 opacity-55'}`}
                           >
                             <div className="flex items-center gap-0.5">
-                              <span className={`text-xs font-extrabold ${isToday ? 'text-amber-700 dark:text-amber-300' : ''}`}>
-                                {cell.dayNum}
-                              </span>
+                              <span className={`text-xs font-extrabold ${isToday ? 'text-amber-700 dark:text-amber-300' : ''}`}>{cell.dayNum}</span>
                               {hasBat && <span className="text-[9px]">🛡️</span>}
                             </div>
-
                             {slotsCount > 0 ? (
-                              <span
-                                className={`text-[9px] font-bold px-1 rounded ${
-                                  isPast
-                                    ? 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-                                    : 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300'
-                                }`}
-                              >
+                              <span className={`text-[9px] font-bold px-1 rounded ${
+                                isPast ? 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                                       : 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300'}`}>
                                 {slotsCount} см.
                               </span>
-                            ) : (
-                              <span className="text-[9px] text-slate-300 dark:text-slate-600">—</span>
-                            )}
+                            ) : (<span className="text-[9px] text-slate-300 dark:text-slate-600">—</span>)}
                           </button>
                         );
                       })}
                     </div>
                   </div>
 
-                  {/* Переключатель показа: Весь месяц (1–31) или Только выбранный день */}
                   <div className="grid grid-cols-2 gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
                     <button
                       onClick={() => setDayFilterMode('ALL_MONTH')}
                       className={`py-1.5 rounded-lg text-xs font-bold transition ${
-                        dayFilterMode === 'ALL_MONTH'
-                          ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs'
-                          : 'text-slate-500'
-                      }`}
+                        dayFilterMode === 'ALL_MONTH' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs' : 'text-slate-500'}`}
                     >
                       📋 Весь месяц (1–{currentMonthInfo.daysInMonth})
                     </button>
                     <button
                       onClick={() => setDayFilterMode('SINGLE_DAY')}
                       className={`py-1.5 rounded-lg text-xs font-bold transition ${
-                        dayFilterMode === 'SINGLE_DAY'
-                          ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs'
-                          : 'text-slate-500'
-                      }`}
+                        dayFilterMode === 'SINGLE_DAY' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs' : 'text-slate-500'}`}
                     >
                       🔍 Выбранный день ({formatRuDate(selectedDayISO)})
                     </button>
                   </div>
 
-                  {/* Кнопки заполнения и пересчета (только для 4 редакторов) */}
                   {isUserAdmin && (
                     <div className="flex items-center justify-between gap-2 pt-1">
-                      <button
-                        onClick={fillEmptyDaysInMonth}
-                        className="flex-1 py-2 bg-indigo-600 active:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs"
-                      >
+                      <button onClick={fillEmptyDaysInMonth} className="flex-1 py-2 bg-indigo-600 active:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs">
                         ⚡ Заполнить пустые дни месяца
                       </button>
-                      <button
-                        onClick={() => setRecalcModalOpen(true)}
-                        className="px-3 py-2 bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-bold rounded-xl"
-                      >
+                      <button onClick={() => setRecalcModalOpen(true)} className="px-3 py-2 bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-bold rounded-xl">
                         🔄 Пересчет
                       </button>
                     </div>
                   )}
                 </div>
 
-                {/* СПИСОК ВСЕХ ДНЕЙ МЕСЯЦА (И ПРОШЛЫЕ, И СЕГОДНЯ, И БУДУЩИЕ) */}
                 {visibleDays.map((day) => {
                   const batteryIds = day.batteryDutyIds || [];
                   const prevDayBatteryIds = schedules[addDaysISO(day.date, -1)]?.batteryDutyIds || [];
                   const isToday = day.date === todayISO;
                   const isPast = day.date < todayISO;
-
                   return (
                     <div
                       id={`day-card-${day.date}`}
                       key={day.date}
                       className={`rounded-2xl border p-3.5 shadow-xs space-y-2.5 transition ${
-                        isToday
-                          ? 'bg-white dark:bg-slate-900 border-2 border-amber-500'
-                          : isPast
-                          ? 'bg-slate-50/90 dark:bg-slate-900/70 border-slate-200 dark:border-slate-800'
-                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
-                      }`}
+                        isToday ? 'bg-white dark:bg-slate-900 border-2 border-amber-500'
+                        : isPast ? 'bg-slate-50/90 dark:bg-slate-900/70 border-slate-200 dark:border-slate-800'
+                                 : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'}`}
                     >
                       <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800 flex-wrap gap-1.5">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-sm font-extrabold capitalize">{formatRuDate(day.date)}</span>
                           <span className="text-xs font-mono text-slate-400">{day.date}</span>
-                          {isToday && (
-                            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-400 text-slate-950">
-                              СЕГОДНЯ
-                            </span>
-                          )}
-                          {isPast && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                              Архив
-                            </span>
-                          )}
+                          {isToday && <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-400 text-slate-950">СЕГОДНЯ</span>}
+                          {isPast && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">Архив</span>}
                         </div>
-
                         {isUserAdmin && (
                           <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => setBatteryModalDate(day.date)}
-                              className="text-[10px] font-bold px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
-                            >
+                            <button onClick={() => setBatteryModalDate(day.date)} className="text-[10px] font-bold px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                               🛡️ Батарея
                             </button>
-                            <button
-                              onClick={() => setAddSlotDate(day.date)}
-                              className="text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-                            >
+                            <button onClick={() => setAddSlotDate(day.date)} className="text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                               + Задача
                             </button>
                             {(day.slots?.length > 0 || batteryIds.length > 0) && (
-                              <button
-                                onClick={() => askConfirmClearDay(day.date)}
-                                className="text-[10px] font-bold px-2 py-1 rounded-lg bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
-                              >
+                              <button onClick={() => askConfirmClearDay(day.date)} className="text-[10px] font-bold px-2 py-1 rounded-lg bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
                                 🗑 Очистить
                               </button>
                             )}
@@ -1525,18 +1240,14 @@
                           {protectRestDay && prevDayBatteryIds.length > 0 && (
                             <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
                               <span>💤 После наряда (сдача):</span>
-                              <span className="font-semibold">
-                                {prevDayBatteryIds.map((id) => getMember(id)?.fullName).join(', ')}
-                              </span>
+                              <span className="font-semibold">{prevDayBatteryIds.map((id) => getMember(id)?.fullName).join(', ')}</span>
                             </div>
                           )}
                         </div>
                       )}
 
                       {(!day.slots || day.slots.length === 0) ? (
-                        <div className="text-center py-3 text-xs text-slate-400">
-                          На эти сутки нагрузок нет
-                        </div>
+                        <div className="text-center py-3 text-xs text-slate-400">На эти сутки нагрузок нет</div>
                       ) : (
                         <div className="space-y-2">
                           {day.slots.map((slot) => {
@@ -1550,59 +1261,26 @@
                                   setModalSlot({ date: day.date, slot });
                                 }}
                                 className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 transition ${
-                                  isUserAdmin ? 'active:scale-[0.99] cursor-pointer' : ''
-                                } ${
-                                  slot.isPenalty
-                                    ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-300 dark:border-rose-800'
-                                    : slot.repaidForName
-                                    ? 'bg-emerald-50/70 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-800'
-                                    : 'bg-slate-50/90 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700'
-                                }`}
+                                  isUserAdmin ? 'active:scale-[0.99] cursor-pointer' : ''} ${
+                                  slot.isPenalty ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-300 dark:border-rose-800'
+                                  : slot.repaidForName ? 'bg-emerald-50/70 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-800'
+                                  : 'bg-slate-50/90 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700'}`}
                               >
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="text-[10px] font-extrabold uppercase tracking-wide text-indigo-700 dark:text-indigo-400">
-                                      {slot.title}
-                                    </span>
-                                    {slot.isPenalty && (
-                                      <span className="text-[9px] font-bold px-1.5 py-0.2 bg-rose-200 text-rose-900 rounded">
-                                        ШТРАФ
-                                      </span>
-                                    )}
-                                    {slot.repaidForName && (
-                                      <span className="text-[9px] font-bold px-1.5 py-0.2 bg-emerald-200 text-emerald-900 rounded">
-                                        🤝 Долг за: {slot.repaidForName}
-                                      </span>
-                                    )}
+                                    <span className="text-[10px] font-extrabold uppercase tracking-wide text-indigo-700 dark:text-indigo-400">{slot.title}</span>
+                                    {slot.isPenalty && <span className="text-[9px] font-bold px-1.5 py-0.2 bg-rose-200 text-rose-900 rounded">ШТРАФ</span>}
+                                    {slot.repaidForName && <span className="text-[9px] font-bold px-1.5 py-0.2 bg-emerald-200 text-emerald-900 rounded">🤝 Долг за: {slot.repaidForName}</span>}
                                   </div>
                                   <div className="flex items-center gap-1.5 mt-1">
-                                    <span className="text-sm font-bold truncate">
-                                      {m ? m.fullName : 'Не назначен'}
-                                    </span>
-                                    {m && (
-                                      <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${SQUAD_BADGE[m.squad]}`}>
-                                        {m.squad} отд.
-                                      </span>
-                                    )}
+                                    <span className="text-sm font-bold truncate">{m ? m.fullName : 'Не назначен'}</span>
+                                    {m && <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${SQUAD_BADGE[m.squad]}`}>{m.squad} отд.</span>}
                                   </div>
                                 </div>
-
                                 {isUserAdmin && (
                                   <div className="flex items-center gap-1 shrink-0">
-                                    <button
-                                      onClick={(e) => replaceWithRandomLeastLoaded(day.date, slot, e)}
-                                      className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs font-bold shadow-2xs"
-                                      title="Случайный из менее загруженных"
-                                    >
-                                      🎲
-                                    </button>
-                                    <button
-                                      onClick={(e) => handleDeleteSlotFromDay(day.date, slot, e)}
-                                      className="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-rose-500 text-xs font-bold"
-                                      title="Удалить задачу"
-                                    >
-                                      🗑
-                                    </button>
+                                    <button onClick={(e) => replaceWithRandomLeastLoaded(day.date, slot, e)} className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs font-bold shadow-2xs" title="Случайный из менее загруженных">🎲</button>
+                                    <button onClick={(e) => handleDeleteSlotFromDay(day.date, slot, e)} className="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-rose-500 text-xs font-bold" title="Удалить задачу">🗑</button>
                                   </div>
                                 )}
                               </div>
@@ -1616,30 +1294,23 @@
               </div>
             )}
 
-            {/* =========================================================
-                ВКЛАДКА 2: ТАБЛИЦА СТАТИСТИКИ
-               ========================================================= */}
+            {/* ВКЛАДКА 2: СТАТИСТИКА */}
             {tab === 'STATS' && (
               <div className="p-3 space-y-3">
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-2.5">
                   <div className="flex items-center justify-between">
                     <h2 className="text-sm font-extrabold">📊 Таблица нагрузок</h2>
-                    <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded-lg">
-                      Бойцов: {filteredStatsList.length}
-                    </span>
+                    <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded-lg">Бойцов: {filteredStatsList.length}</span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <input
-                      type="text"
-                      placeholder="🔍 Фамилия (подсветка)..."
-                      value={statSearch}
-                      onChange={(e) => setStatSearch(e.target.value)}
+                      type="text" placeholder="🔍 Фамилия (подсветка)..."
+                      value={statSearch} onChange={(e) => setStatSearch(e.target.value)}
                       className="px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs font-semibold outline-none"
                     />
                     <select
-                      value={statDateScope}
-                      onChange={(e) => setStatDateScope(e.target.value)}
+                      value={statDateScope} onChange={(e) => setStatDateScope(e.target.value)}
                       className="px-2 py-1.5 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs font-bold bg-white"
                     >
                       <option value="ALL">📅 За всё время</option>
@@ -1652,41 +1323,20 @@
                     <div className="grid grid-cols-2 gap-2 p-2 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900">
                       <div>
                         <label className="text-[10px] font-bold uppercase text-indigo-600 dark:text-indigo-300">С даты (От)</label>
-                        <input
-                          type="date"
-                          value={statCustomFrom}
-                          onChange={(e) => setStatCustomFrom(e.target.value)}
-                          className="w-full mt-0.5 px-2 py-1 border rounded-lg text-xs font-bold dark:bg-slate-800 dark:border-slate-700"
-                        />
+                        <input type="date" value={statCustomFrom} onChange={(e) => setStatCustomFrom(e.target.value)} className="w-full mt-0.5 px-2 py-1 border rounded-lg text-xs font-bold dark:bg-slate-800 dark:border-slate-700" />
                       </div>
                       <div>
                         <label className="text-[10px] font-bold uppercase text-indigo-600 dark:text-indigo-300">По дату (До)</label>
-                        <input
-                          type="date"
-                          value={statCustomTo}
-                          onChange={(e) => setStatCustomTo(e.target.value)}
-                          className="w-full mt-0.5 px-2 py-1 border rounded-lg text-xs font-bold dark:bg-slate-800 dark:border-slate-700"
-                        />
+                        <input type="date" value={statCustomTo} onChange={(e) => setStatCustomTo(e.target.value)} className="w-full mt-0.5 px-2 py-1 border rounded-lg text-xs font-bold dark:bg-slate-800 dark:border-slate-700" />
                       </div>
                     </div>
                   )}
 
                   <div className="grid grid-cols-4 gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-                    {[
-                      { id: 0, label: 'Все (23)' },
-                      { id: 1, label: '1 отд.' },
-                      { id: 2, label: '2 отд.' },
-                      { id: 3, label: '3 отд.' },
-                    ].map((sq) => (
-                      <button
-                        key={sq.id}
-                        onClick={() => setStatSquadFilter(sq.id)}
+                    {[{ id: 0, label: 'Все (23)' }, { id: 1, label: '1 отд.' }, { id: 2, label: '2 отд.' }, { id: 3, label: '3 отд.' }].map((sq) => (
+                      <button key={sq.id} onClick={() => setStatSquadFilter(sq.id)}
                         className={`py-1 rounded-lg text-[11px] font-bold transition ${
-                          statSquadFilter === sq.id
-                            ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs'
-                            : 'text-slate-500'
-                        }`}
-                      >
+                          statSquadFilter === sq.id ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs' : 'text-slate-500'}`}>
                         {sq.label}
                       </button>
                     ))}
@@ -1696,22 +1346,21 @@
                     <select
                       value={statTaskFilter}
                       onChange={(e) => {
-                        setStatTaskFilter(e.target.value);
-                        if (e.target.value !== 'ALL') setStatSortBy('TASK_DESC');
+                        const val = e.target.value;
+                        setStatTaskFilter(val);
+                        if (val === 'ALL') setStatSortBy('SCORE_DESC');
+                        else setStatSortBy('TASK_DESC');
                       }}
                       className="px-2 py-1.5 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs font-bold bg-white"
                     >
                       <option value="ALL">Все виды нагрузок</option>
                       <option value="BATTERY">🛡️ Наряд по батарее</option>
-                      {allWorkloadTitles.map((title) => (
-                        <option key={title} value={title}>📌 {title}</option>
-                      ))}
+                      {allWorkloadTitles.map((title) => (<option key={title} value={title}>📌 {title}</option>))}
                       <option value="PENALTY">⚠ Штрафные наряды</option>
                     </select>
 
                     <select
-                      value={statSortBy}
-                      onChange={(e) => setStatSortBy(e.target.value)}
+                      value={statSortBy} onChange={(e) => setStatSortBy(e.target.value)}
                       className="px-2 py-1.5 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs font-bold bg-white"
                     >
                       <option value="SCORE_DESC">Индекс (по убыванию)</option>
@@ -1732,9 +1381,7 @@
                           <th className="py-2.5 px-2 text-center bg-indigo-50/60 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300">Индекс</th>
                           <th className="py-2.5 px-2 text-center">Всего</th>
                           <th className="py-2.5 px-2 text-center text-amber-800 dark:text-amber-300 bg-amber-50/50 dark:bg-amber-950/40">🛡️ Батарея</th>
-                          {allWorkloadTitles.map((title) => (
-                            <th key={title} className="py-2.5 px-2 text-center whitespace-nowrap">{title}</th>
-                          ))}
+                          {allWorkloadTitles.map((title) => (<th key={title} className="py-2.5 px-2 text-center whitespace-nowrap">{title}</th>))}
                           <th className="py-2.5 px-2 text-center text-rose-700">⚠ Штраф</th>
                           <th className="py-2.5 px-2 text-center">Статус</th>
                         </tr>
@@ -1745,31 +1392,17 @@
                             <td className="py-2 px-3 sticky left-0 bg-white dark:bg-slate-900 z-10 border-r border-slate-100 dark:border-slate-800">
                               <div className="flex items-center gap-1.5">
                                 <span className={`text-[9px] font-bold px-1 rounded ${SQUAD_BADGE[st.squad]}`}>{st.squad}</span>
-                                <span className="font-bold">
-                                  <HighlightText text={st.fullName} query={statSearch} />
-                                </span>
+                                <span className="font-bold"><HighlightText text={st.fullName} query={statSearch} /></span>
                               </div>
                             </td>
-                            <td className="py-2 px-2 text-center font-mono font-extrabold text-indigo-700 dark:text-indigo-300 bg-indigo-50/30 dark:bg-indigo-950/30">
-                              {st.score.toFixed(1)}
-                            </td>
+                            <td className="py-2 px-2 text-center font-mono font-extrabold text-indigo-700 dark:text-indigo-300 bg-indigo-50/30 dark:bg-indigo-950/30">{st.score.toFixed(1)}</td>
                             <td className="py-2 px-2 text-center font-bold">{st.totalAll}</td>
-                            <td className="py-2 px-2 text-center font-bold text-amber-800 dark:text-amber-300 bg-amber-50/30 dark:bg-amber-950/20">
-                              {st.batteryCount || 0}
-                            </td>
-                            {allWorkloadTitles.map((title) => (
-                              <td key={title} className="py-2 px-2 text-center font-semibold">
-                                {st.byTitle[title] || 0}
-                              </td>
-                            ))}
+                            <td className="py-2 px-2 text-center font-bold text-amber-800 dark:text-amber-300 bg-amber-50/30 dark:bg-amber-950/20">{st.batteryCount || 0}</td>
+                            {allWorkloadTitles.map((title) => (<td key={title} className="py-2 px-2 text-center font-semibold">{st.byTitle[title] || 0}</td>))}
                             <td className="py-2 px-2 text-center">
                               {st.penaltyShifts > 0 ? (
-                                <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 font-bold text-[10px]">
-                                  +{st.penaltyShifts}
-                                </span>
-                              ) : (
-                                <span className="text-slate-300 dark:text-slate-600">0</span>
-                              )}
+                                <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 font-bold text-[10px]">+{st.penaltyShifts}</span>
+                              ) : (<span className="text-slate-300 dark:text-slate-600">0</span>)}
                             </td>
                             <td className="py-2 px-2 text-center whitespace-nowrap">
                               {isUserAdmin ? (
@@ -1777,14 +1410,8 @@
                                   value={st.status}
                                   onChange={(e) => {
                                     const nextStatus = e.target.value;
-                                    const nextMembers = members.map((x) =>
-                                      x.id === st.id ? { ...x, status: nextStatus } : x
-                                    );
-                                    const { nextLogs } = createLogAndBackup(
-                                      '👤 Статус бойца',
-                                      `${st.fullName}: ${STATUS_INFO[nextStatus].label}`,
-                                      false
-                                    );
+                                    const nextMembers = members.map((x) => x.id === st.id ? { ...x, status: nextStatus } : x);
+                                    const { nextLogs } = createLogAndBackup('👤 Статус бойца', `${st.fullName}: ${STATUS_INFO[nextStatus].label}`, false);
                                     setMembers(nextMembers);
                                     pushToCloudNow({ members: nextMembers, logs: nextLogs });
                                     showToast('Статус синхронизирован');
@@ -1796,9 +1423,7 @@
                                   <option value="LEAVE">Отпуск</option>
                                 </select>
                               ) : (
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_INFO[st.status].color}`}>
-                                  {STATUS_INFO[st.status].label}
-                                </span>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_INFO[st.status].color}`}>{STATUS_INFO[st.status].label}</span>
                               )}
                             </td>
                           </tr>
@@ -1810,17 +1435,13 @@
               </div>
             )}
 
-            {/* =========================================================
-                ВКЛАДКА 3: ДОЛГИ ПО ПОДМЕНАМ
-               ========================================================= */}
+            {/* ВКЛАДКА 3: ДОЛГИ */}
             {tab === 'DEBTS' && (
               <div className="p-3 space-y-3">
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 space-y-3">
                   <h2 className="text-sm font-extrabold">🤝 Книга долгов по подменам</h2>
                   {debts.length === 0 ? (
-                    <div className="py-6 text-center bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 text-xs text-slate-400">
-                      Активных долгов нет
-                    </div>
+                    <div className="py-6 text-center bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 text-xs text-slate-400">Активных долгов нет</div>
                   ) : (
                     <div className="space-y-2">
                       {debts.map((d) => (
@@ -1834,9 +1455,7 @@
                           {isUserAdmin && (
                             <button
                               onClick={() => {
-                                const nextDebts = debts
-                                  .map((x) => (x.id === d.id ? { ...x, count: x.count - 1 } : x))
-                                  .filter((x) => x.count > 0);
+                                const nextDebts = debts.map((x) => x.id === d.id ? { ...x, count: x.count - 1 } : x).filter((x) => x.count > 0);
                                 const { nextLogs } = createLogAndBackup('🤝 Списание долга', `${getName(d.debtorId)} → ${getName(d.creditorId)} (-1)`, false);
                                 setDebts(nextDebts);
                                 pushToCloudNow({ debts: nextDebts, logs: nextLogs });
@@ -1855,9 +1474,7 @@
               </div>
             )}
 
-            {/* =========================================================
-                ВКЛАДКА 4: ШАБЛОНЫ НАГРУЗОК (ТОЛЬКО ДЛЯ 4 АДМИНОВ)
-               ========================================================= */}
+            {/* ВКЛАДКА 4: НАГРУЗКИ */}
             {tab === 'TASKS' && isUserAdmin && (
               <div className="p-3 space-y-3">
                 <div className="bg-amber-50/90 dark:bg-amber-950/40 rounded-2xl p-3.5 border border-amber-200 dark:border-amber-800 space-y-2.5">
@@ -1866,11 +1483,7 @@
                     <span className="font-semibold">Бонус тяжести за сутки:</span>
                     <select
                       value={batteryWeight}
-                      onChange={(e) => {
-                        const val = Number(e.target.value);
-                        setBatteryWeight(val);
-                        pushToCloudNow({ batteryWeight: val });
-                      }}
+                      onChange={(e) => { const val = Number(e.target.value); setBatteryWeight(val); pushToCloudNow({ batteryWeight: val }); }}
                       className="px-2.5 py-1 rounded-lg border border-amber-300 dark:bg-slate-800 font-bold"
                     >
                       <option value={0}>0 баллов</option>
@@ -1920,40 +1533,21 @@
                     className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2"
                   >
                     <input
-                      type="text"
-                      placeholder="Название нагрузки..."
-                      value={newTplTitle}
-                      onChange={(e) => setNewTplTitle(e.target.value)}
+                      type="text" placeholder="Название нагрузки..."
+                      value={newTplTitle} onChange={(e) => setNewTplTitle(e.target.value)}
                       className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs font-semibold"
                     />
                     <div className="grid grid-cols-2 gap-2">
-                      <input
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={newTplCount}
-                        onChange={(e) => setNewTplCount(e.target.value)}
-                        className="px-3 py-1.5 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs font-bold"
-                      />
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={newTplWeight}
-                        onChange={(e) => setNewTplWeight(e.target.value)}
-                        className="px-3 py-1.5 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs font-bold"
-                      />
+                      <input type="number" min="1" max="10" value={newTplCount} onChange={(e) => setNewTplCount(e.target.value)} className="px-3 py-1.5 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs font-bold" />
+                      <input type="number" step="0.1" value={newTplWeight} onChange={(e) => setNewTplWeight(e.target.value)} className="px-3 py-1.5 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs font-bold" />
                     </div>
-                    <button type="submit" className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl">
-                      + Добавить в шаблон
-                    </button>
+                    <button type="submit" className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl">+ Добавить в шаблон</button>
                   </form>
                 </div>
               </div>
             )}
 
-            {/* =========================================================
-                ВКЛАДКА 5: БЭКАПЫ, ЖУРНАЛ ИЗМЕНЕНИЙ, ОБЛАКО И ЮНИТ-ТЕСТЫ
-               ========================================================= */}
+            {/* ВКЛАДКА 5: ОБЛАКО / АРХИВ */}
             {tab === 'CLOUD' && (
               <div className="p-3 space-y-3">
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 space-y-2.5">
@@ -1961,24 +1555,12 @@
                     <h2 className="text-sm font-extrabold">☁️ Realtime Синхронизация</h2>
                     <span className="text-[11px] font-mono text-indigo-500">ID: {currentTelegramId || 'Браузер'}</span>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold">
-                    {cloudStatus}
-                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold">{cloudStatus}</div>
                   <div className="grid grid-cols-2 gap-2">
                     {isUserAdmin && (
-                      <button
-                        onClick={() => pushToCloudNow()}
-                        className="py-2 bg-slate-900 dark:bg-indigo-600 text-white text-xs font-bold rounded-xl"
-                      >
-                        ⬆️ Отправить в БД
-                      </button>
+                      <button onClick={() => pushToCloudNow()} className="py-2 bg-slate-900 dark:bg-indigo-600 text-white text-xs font-bold rounded-xl">⬆️ Отправить в БД</button>
                     )}
-                    <button
-                      onClick={() => pullFromCloudNow(false)}
-                      className="py-2 bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-slate-700 text-xs font-bold rounded-xl"
-                    >
-                      ⬇️ Обновить сейчас
-                    </button>
+                    <button onClick={() => pullFromCloudNow(false)} className="py-2 bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-slate-700 text-xs font-bold rounded-xl">⬇️ Обновить сейчас</button>
                   </div>
                 </div>
 
@@ -1995,12 +1577,7 @@
                               <div className="font-bold truncate">{bk.label}</div>
                               <div className="text-[10px] text-slate-400 font-mono">{bk.time}</div>
                             </div>
-                            <button
-                              onClick={() => restoreBackupSnapshot(bk)}
-                              className="px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-extrabold text-[11px] shrink-0"
-                            >
-                              ⏪ Откатить
-                            </button>
+                            <button onClick={() => restoreBackupSnapshot(bk)} className="px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-extrabold text-[11px] shrink-0">⏪ Откатить</button>
                           </div>
                         ))}
                       </div>
@@ -2030,12 +1607,7 @@
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <h2 className="text-sm font-extrabold">🧪 Самопроверка алгоритма</h2>
-                    <button
-                      onClick={runBuiltInUnitTests}
-                      className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-xl"
-                    >
-                      ▶ Запустить тесты
-                    </button>
+                    <button onClick={runBuiltInUnitTests} className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-xl">▶ Запустить тесты</button>
                   </div>
                   {testResults && (
                     <div className="space-y-1.5 pt-1">
@@ -2051,9 +1623,7 @@
               </div>
             )}
 
-            {/* =========================================================
-                МОДАЛКА ВЫБОРА РЕЖИМА ПЕРЕСЧЕТА (С ЗАЩИТОЙ ПРОШЕДШИХ ДНЕЙ)
-               ========================================================= */}
+            {/* МОДАЛКА ПЕРЕСЧЕТА */}
             {recalcModalOpen && (
               <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
                 <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-5 space-y-3.5 border border-slate-200 dark:border-slate-800 shadow-2xl">
@@ -2062,64 +1632,35 @@
                     Выберите, нужно ли сохранить уже прошедшие дни месяца в истории без изменений:
                   </p>
                   <div className="space-y-2 pt-1">
-                    <button
-                      onClick={() => executeRecalculate(true)}
-                      className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 text-white text-xs font-extrabold text-left"
-                    >
+                    <button onClick={() => executeRecalculate(true)} className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 text-white text-xs font-extrabold text-left">
                       ✅ Пересчитать только с СЕГОДНЯШНЕГО дня
-                      <span className="block text-[10px] font-normal text-indigo-100 mt-0.5">
-                        Все прошедшие дни месяца останутся в истории нетронутыми
-                      </span>
+                      <span className="block text-[10px] font-normal text-indigo-100 mt-0.5">Все прошедшие дни месяца останутся в истории нетронутыми</span>
                     </button>
-
-                    <button
-                      onClick={() => executeRecalculate(false)}
-                      className="w-full py-2.5 px-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-extrabold text-left"
-                    >
+                    <button onClick={() => executeRecalculate(false)} className="w-full py-2.5 px-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-extrabold text-left">
                       ⚠️ Пересчитать весь месяц с 1-го числа
-                      <span className="block text-[10px] font-normal opacity-80 mt-0.5">
-                        Перераспределит все дни месяца (1–{currentMonthInfo.daysInMonth}) заново
-                      </span>
+                      <span className="block text-[10px] font-normal opacity-80 mt-0.5">Перераспределит все дни месяца (1–{currentMonthInfo.daysInMonth}) заново</span>
                     </button>
-
-                    <button
-                      onClick={() => setRecalcModalOpen(false)}
-                      className="w-full py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold"
-                    >
-                      Отмена
-                    </button>
+                    <button onClick={() => setRecalcModalOpen(false)} className="w-full py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold">Отмена</button>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* МОДАЛКА ПОДТВЕРЖДЕНИЯ ОЧИСТКИ СУТОК И БЭКАПА */}
+            {/* МОДАЛКА ПОДТВЕРЖДЕНИЯ */}
             {confirmDialog && (
               <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
                 <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-5 space-y-4 border border-slate-200 dark:border-slate-800 shadow-2xl">
                   <h3 className="text-base font-extrabold">{confirmDialog.title}</h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                    {confirmDialog.message}
-                  </p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{confirmDialog.message}</p>
                   <div className="grid grid-cols-2 gap-2 pt-1">
-                    <button
-                      onClick={() => setConfirmDialog(null)}
-                      className="py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold"
-                    >
-                      Отмена
-                    </button>
-                    <button
-                      onClick={confirmDialog.onConfirm}
-                      className="py-2.5 rounded-xl bg-rose-600 text-white text-xs font-extrabold"
-                    >
-                      {confirmDialog.confirmLabel}
-                    </button>
+                    <button onClick={() => setConfirmDialog(null)} className="py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold">Отмена</button>
+                    <button onClick={confirmDialog.onConfirm} className="py-2.5 rounded-xl bg-rose-600 text-white text-xs font-extrabold">{confirmDialog.confirmLabel}</button>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* МОДАЛКА СУТОЧНОГО НАРЯДА ПО БАТАРЕЕ */}
+            {/* МОДАЛКА БАТАРЕИ */}
             {isUserAdmin && batteryModalDate && (
               <div className="fixed inset-0 z-40 bg-black/50 flex items-end justify-center">
                 <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl p-4 space-y-3 max-h-[82vh] flex flex-col">
@@ -2144,7 +1685,7 @@
               </div>
             )}
 
-            {/* МОДАЛКА ЗАМЕНЫ БОЙЦА */}
+            {/* МОДАЛКА ЗАМЕНЫ */}
             {isUserAdmin && modalSlot && (
               <div className="fixed inset-0 z-40 bg-black/50 flex items-end justify-center">
                 <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl p-4 space-y-3 max-h-[85vh] flex flex-col">
@@ -2152,17 +1693,14 @@
                     <div className="text-sm font-extrabold">{modalSlot.slot.title} • {formatRuDate(modalSlot.date)}</div>
                     <button onClick={() => setModalSlot(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 font-bold">✕</button>
                   </div>
-                  <button onClick={() => replaceWithRandomLeastLoaded(modalSlot.date, modalSlot.slot)} className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl">
-                    🎲 Случайный (из менее загруженных)
-                  </button>
+                  <button onClick={() => replaceWithRandomLeastLoaded(modalSlot.date, modalSlot.slot)} className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl">🎲 Случайный (из менее загруженных)</button>
                   <div className="grid grid-cols-3 gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
                     <button onClick={() => setAssignMode('REGULAR')} className={`py-1.5 rounded-lg text-[11px] font-bold ${assignMode === 'REGULAR' ? 'bg-white dark:bg-slate-900 text-indigo-600' : 'text-slate-500'}`}>Очередь</button>
                     <button onClick={() => setAssignMode('DEBT_COVER')} className={`py-1.5 rounded-lg text-[11px] font-bold ${assignMode === 'DEBT_COVER' ? 'bg-emerald-600 text-white' : 'text-slate-500'}`}>В долг</button>
                     <button onClick={() => setAssignMode('PENALTY')} className={`py-1.5 rounded-lg text-[11px] font-bold ${assignMode === 'PENALTY' ? 'bg-rose-600 text-white' : 'text-slate-500'}`}>Штраф</button>
                   </div>
                   <div className="overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 border dark:border-slate-800 rounded-xl">
-                    {members
-                      .filter((m) => m.status === 'ACTIVE')
+                    {members.filter((m) => m.status === 'ACTIVE')
                       .sort((a, b) => (statsMap[a.id]?.score || 0) - (statsMap[b.id]?.score || 0))
                       .map((m) => (
                         <div key={m.id} className="p-2.5 flex items-center justify-between">
@@ -2170,9 +1708,7 @@
                             <div className="text-xs font-bold">{m.fullName} ({m.squad} отд.)</div>
                             <div className="text-[10px] text-slate-500">Индекс: {(statsMap[m.id]?.score || 0).toFixed(1)}</div>
                           </div>
-                          <button onClick={() => handleAssignMember(m.id)} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-xl">
-                            Назначить
-                          </button>
+                          <button onClick={() => handleAssignMember(m.id)} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-xl">Назначить</button>
                         </div>
                       ))}
                   </div>
@@ -2189,16 +1725,11 @@
                     <button type="button" onClick={() => setAddSlotDate(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 font-bold">✕</button>
                   </div>
                   <input
-                    type="text"
-                    required
-                    placeholder="Название (напр. ПХД)"
-                    value={customSlotTitle}
-                    onChange={(e) => setCustomSlotTitle(e.target.value)}
+                    type="text" required placeholder="Название (напр. ПХД)"
+                    value={customSlotTitle} onChange={(e) => setCustomSlotTitle(e.target.value)}
                     className="w-full px-3 py-2 border dark:border-slate-700 dark:bg-slate-800 rounded-xl text-xs"
                   />
-                  <button type="submit" className="w-full py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl">
-                    Добавить
-                  </button>
+                  <button type="submit" className="w-full py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl">Добавить</button>
                 </form>
               </div>
             )}
@@ -2231,4 +1762,4 @@
     ReactDOM.createRoot(document.getElementById('root')).render(<BatteryDutyApp />);
   </script>
 </body>
-  </html>
+</html>
