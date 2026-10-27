@@ -2,31 +2,108 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#4338ca" />
-  <link rel="manifest" href='data:application/manifest+json,{"name":"Контроль Взвода","short_name":"Взвод","start_url":"./","display":"standalone","background_color":"%234338ca","theme_color":"%234338ca"}' />
-  <title>Дежурство-Контроль PRO v13.1 • Календарь Взвода</title>
+  <meta name="theme-color" content="#090a0f" />
+  <title>Взвод • Система управления дежурствами</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config = { darkMode: 'class' };</script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Manrope', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            obsidian: {
+              950: '#08090d',
+              900: '#10121a',
+              800: '#171a26',
+              700: '#222638',
+            }
+          }
+        }
+      }
+    };
+  </script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
   <style>
-    body { -webkit-tap-highlight-color: transparent; }
-    .safe-bottom { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)); }
-    .modal-enter { animation: slideUp .18s ease-out; }
-    @keyframes slideUp { from { transform: translateY(100%); opacity: 0.4; } to { transform: translateY(0); opacity: 1; } }
-    .fade-in { animation: fadeIn .18s ease-out; }
-    @keyframes fadeIn { from { opacity: 0.4 } to { opacity: 1 } }
-    .dot-hole { box-shadow: 0 0 0 2px #ef4444 inset; }
-    .dark .text-muted { color: #cbd5e1; }
+    * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+    body {
+      font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+      overscroll-behavior-y: none;
+    }
+    .safe-bottom { padding-bottom: calc(6.5rem + env(safe-area-inset-bottom)); }
+    .glass-dock {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+    }
+    .dark .glass-dock {
+      background: rgba(16, 18, 26, 0.85);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+    }
+    .glass-header {
+      background: rgba(244, 245, 249, 0.85);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+    }
+    .dark .glass-header {
+      background: rgba(8, 9, 13, 0.82);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+    }
+    .card-surface {
+      background: #ffffff;
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.04), 0 1px 3px 0 rgba(15, 23, 42, 0.02);
+    }
+    .dark .card-surface {
+      background: linear-gradient(180deg, rgba(25, 28, 40, 0.9) 0%, rgba(16, 18, 26, 0.95) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+    }
+    .spring-enter {
+      animation: springUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes springUp {
+      from { opacity: 0; transform: translateY(14px) scale(0.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .sheet-enter {
+      animation: sheetSlide 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes sheetSlide {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .press-scale {
+      transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease;
+    }
+    .press-scale:active {
+      transform: scale(0.96);
+    }
+    .hole-ring {
+      box-shadow: inset 0 0 0 1.5px #f43f5e;
+    }
+    ::-webkit-scrollbar { width: 0px; height: 0px; }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-900 select-none">
+<body class="bg-[#F4F5F9] dark:bg-obsidian-950 text-slate-900 dark:text-slate-100 select-none">
   <div id="root"></div>
 
   <script type="text/babel">
@@ -34,7 +111,120 @@
 
     const tg = window.Telegram?.WebApp;
     if (tg) { tg.ready(); tg.expand(); }
-    const haptic = (type = 'light') => { try { tg?.HapticFeedback?.impactOccurred(type); } catch (e) {} };
+    const haptic = (type = 'light') => {
+      try { tg?.HapticFeedback?.impactOccurred(type); } catch (e) {}
+    };
+
+    function Icon({ name, size = 18, className = '' }) {
+      const props = {
+        width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+        stroke: 'currentColor', strokeWidth: 1.85, strokeLinecap: 'round',
+        strokeLinejoin: 'round', className: `shrink-0 ${className}`,
+      };
+
+      switch (name) {
+        case 'today': return <svg {...props}><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="12" cy="15" r="2" fill="currentColor"/></svg>;
+        case 'calendar': return <svg {...props}><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>;
+        case 'chart': return <svg {...props}><path d="M18 20V10M12 20V4M6 20v-6"/></svg>;
+        case 'sliders': return <svg {...props}><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>;
+        case 'cloud': return <svg {...props}><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>;
+        case 'shield': return <svg {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
+        case 'sparkles': return <svg {...props}><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>;
+        case 'refresh': return <svg {...props}><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>;
+        case 'search': return <svg {...props}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>;
+        case 'sun': return <svg {...props}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-14.93 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2m-14.93 7.07 1.41-1.41m11.32-11.32 1.41-1.41"/></svg>;
+        case 'moon': return <svg {...props}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>;
+        case 'share': return <svg {...props}><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>;
+        case 'plus': return <svg {...props}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
+        case 'trash': return <svg {...props}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>;
+        case 'star': return <svg {...props}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
+        case 'dice': return <svg {...props}><rect width="18" height="18" x="3" y="3" rx="3" ry="3"/><path d="M16 8h.01M8 8h.01M8 16h.01M16 16h.01M12 12h.01"/></svg>;
+        case 'eraser': return <svg {...props}><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>;
+        case 'note': return <svg {...props}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>;
+        case 'copy': return <svg {...props}><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>;
+        case 'chevronLeft': return <svg {...props}><path d="m15 18-6-6 6-6"/></svg>;
+        case 'chevronRight': return <svg {...props}><path d="m9 18 6-6-6-6"/></svg>;
+        case 'x': return <svg {...props}><path d="M18 6 6 18M6 6l12 12"/></svg>;
+        case 'check': return <svg {...props}><polyline points="20 6 9 17 4 12"/></svg>;
+        case 'lock': return <svg {...props}><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
+        case 'ban': return <svg {...props}><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>;
+        case 'undo': return <svg {...props}><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>;
+        case 'crown': return <svg {...props}><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>;
+        case 'edit': return <svg {...props}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
+        default: return null;
+      }
+    }
+
+    function BottomSheet({ isOpen, onClose, title, subtitle, children }) {
+      const [dragY, setDragY] = useState(0);
+      const [isDragging, setIsDragging] = useState(false);
+      const startYRef = useRef(0);
+
+      useEffect(() => {
+        if (isOpen) setDragY(0);
+      }, [isOpen]);
+
+      if (!isOpen) return null;
+
+      const onTouchStart = (e) => {
+        startYRef.current = e.touches[0].clientY;
+        setIsDragging(true);
+      };
+      const onTouchMove = (e) => {
+        if (!isDragging) return;
+        const delta = e.touches[0].clientY - startYRef.current;
+        if (delta > 0) setDragY(delta);
+      };
+      const onTouchEnd = () => {
+        setIsDragging(false);
+        if (dragY > 95) {
+          haptic('light');
+          onClose();
+        } else {
+          setDragY(0);
+        }
+      };
+
+      return (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end justify-center transition-opacity"
+          onClick={onClose}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              transform: `translateY(${dragY}px)`,
+              transition: isDragging ? 'none' : 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+            className="w-full max-w-md bg-white dark:bg-obsidian-900 rounded-t-[28px] border-t border-slate-200/80 dark:border-white/10 shadow-2xl max-h-[86vh] flex flex-col sheet-enter overflow-hidden"
+          >
+            <div
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+              className="pt-3 pb-2 px-5 cursor-grab active:cursor-grabbing select-none"
+            >
+              <div className="w-10 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 mx-auto mb-3" />
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">{title}</h3>
+                  {subtitle && <p className="text-xs font-medium text-slate-400 mt-0.5">{subtitle}</p>}
+                </div>
+                <button
+                  onClick={onClose}
+                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-obsidian-800 text-slate-500 dark:text-slate-400 flex items-center justify-center press-scale"
+                >
+                  <Icon name="x" size={16} />
+                </button>
+              </div>
+            </div>
+            <div className="px-5 pb-6 pt-2 overflow-y-auto space-y-3.5 flex-1">
+              {children}
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     const ADMIN_TELEGRAM_IDS = [7032931171, 8908389240, 8654413624, 1017627172];
     const currentTelegramId = Number(
@@ -43,13 +233,13 @@
     const isUserAdmin = ADMIN_TELEGRAM_IDS.includes(currentTelegramId);
 
     const unlockAdminAccess = () => {
-      const input = prompt('Введите ваш Telegram ID для включения режима Редактора:');
+      const input = prompt('Введите ваш Telegram ID для активации прав Редактора:');
       if (!input) return;
       const numId = Number(input.trim());
       if (ADMIN_TELEGRAM_IDS.includes(numId)) {
         localStorage.setItem('bat_saved_admin_id', String(numId));
         window.location.reload();
-      } else alert('Такого ID нет в списке редакторов!');
+      } else alert('Доступ запрещен: вашего ID нет в списке редакторов.');
     };
 
     const INITIAL_MEMBERS = [
@@ -84,14 +274,15 @@
     ];
 
     const STATUS_INFO = {
-      ACTIVE: { label: 'В строю', color: 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800' },
-      SICK: { label: 'Больничный', color: 'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800' },
-      LEAVE: { label: 'Отпуск', color: 'bg-slate-200 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700' },
+      ACTIVE: { label: 'В строю', dot: 'bg-emerald-500', color: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20' },
+      SICK: { label: 'Санчасть', dot: 'bg-rose-500', color: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20' },
+      LEAVE: { label: 'Отпуск', dot: 'bg-amber-500', color: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20' },
     };
-    const SQUAD_BADGE = {
-      1: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300',
-      2: 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300',
-      3: 'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300',
+
+    const SQUAD_STYLE = {
+      1: { badge: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20', avatar: 'from-blue-500 to-indigo-600' },
+      2: { badge: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20', avatar: 'from-violet-500 to-purple-600' },
+      3: { badge: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20', avatar: 'from-teal-500 to-emerald-600' },
     };
 
     const toISO = (d) => {
@@ -115,19 +306,19 @@
       return d.toLocaleDateString('ru-RU', { weekday: 'short', day: '2-digit', month: 'short' });
     };
     const inAbsence = (member, dateStr) => {
-      if (!member?.absences) return false;
-      return member.absences.some((a) => dateStr >= a.from && dateStr <= a.to);
+      if (!member?.absences || !Array.isArray(member.absences)) return false;
+      return member.absences.some((a) => a?.from && a?.to && dateStr >= a.from && dateStr <= a.to);
     };
 
     function HighlightText({ text, query }) {
       if (!query || !query.trim()) return <span>{text}</span>;
-      const q = query.trim();
+      const q = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const parts = text.split(new RegExp(`(${q})`, 'gi'));
       return (
         <span>
           {parts.map((part, i) =>
-            part.toLowerCase() === q.toLowerCase()
-              ? <mark key={i} className="bg-amber-300 text-slate-950 rounded px-0.5 font-extrabold">{part}</mark>
+            part.toLowerCase() === query.trim().toLowerCase()
+              ? <mark key={i} className="bg-amber-400/30 text-amber-600 dark:text-amber-300 rounded px-1 font-extrabold">{part}</mark>
               : <span key={i}>{part}</span>
           )}
         </span>
@@ -139,7 +330,7 @@
     const ROOM_CODE = 'battery_main';
     const supabaseClient = window.supabase ? window.supabase.createClient(SUPA_URL, SUPA_KEY) : null;
 
-    const validateSchedule = (scheduleMap, memberList, cooldownDays) => {
+    const validateSchedule = (scheduleMap, memberList) => {
       const errors = [];
       let emptySlots = 0;
       const memberIds = new Set(memberList.map((m) => m.id));
@@ -168,9 +359,13 @@
       const tomorrowISO = useMemo(() => addDaysISO(todayISO, 1), [todayISO]);
 
       const [tab, setTab] = useState('TODAY');
-      const [darkMode, setDarkMode] = useState(() => localStorage.getItem('bat_dark') === '1');
+      const [darkMode, setDarkMode] = useState(() => {
+        const saved = localStorage.getItem('bat_dark');
+        return saved !== null ? saved === '1' : true;
+      });
       const [toast, setToast] = useState(null);
-      const [cloudStatus, setCloudStatus] = useState('⏳ Синхронизация...');
+      const [cloudStatus, setCloudStatus] = useState('Синхронизация...');
+      const [isCloudOnline, setIsCloudOnline] = useState(true);
       const [pendingSync, setPendingSync] = useState(false);
 
       const [calendarMonthISO, setCalendarMonthISO] = useState(() => {
@@ -181,6 +376,9 @@
       const [dayFilterMode, setDayFilterMode] = useState('ALL_MONTH');
       const [showOnlyUnassigned, setShowOnlyUnassigned] = useState(false);
       const [quickViewDate, setQuickViewDate] = useState(null);
+
+      const calTouchStartX = useRef(null);
+      const calTouchStartY = useRef(null);
 
       const [members, setMembers] = useState(() => {
         const s = localStorage.getItem('bat_v12_members') || localStorage.getItem('bat_v11_members');
@@ -208,6 +406,20 @@
 
       const lastSyncTimestampRef = useRef(0);
       const [lastUndo, setLastUndo] = useState(null);
+
+      // [FIX #2] Refs для чтения актуального состояния в асинхронных callback
+      const schedulesRef = useRef(schedules);
+      useEffect(() => { schedulesRef.current = schedules; }, [schedules]);
+      const membersRef = useRef(members);
+      useEffect(() => { membersRef.current = members; }, [members]);
+      const logsRef = useRef(logs);
+      useEffect(() => { logsRef.current = logs; }, [logs]);
+      const backupsRef = useRef(backups);
+      useEffect(() => { backupsRef.current = backups; }, [backups]);
+
+      // [FIX #1] Ref для pendingSync, чтобы не пересоздавать интервал
+      const pendingSyncRef = useRef(pendingSync);
+      useEffect(() => { pendingSyncRef.current = pendingSync; }, [pendingSync]);
 
       const [statSquadFilter, setStatSquadFilter] = useState(0);
       const [statTaskFilter, setStatTaskFilter] = useState('ALL');
@@ -251,18 +463,9 @@
       useEffect(() => localStorage.setItem('bat_v12_cooldown', String(cooldownDays)), [cooldownDays]);
       useEffect(() => localStorage.setItem('bat_v12_maxweek', String(maxShiftsPerWeek)), [maxShiftsPerWeek]);
 
-      useEffect(() => {
-        const anyModal = Boolean(confirmDialog) || recalcModalOpen || Boolean(modalSlot) ||
-          Boolean(batteryModalDate) || Boolean(addSlotDate) || searchOpen ||
-          Boolean(noteModalDate) || Boolean(copyModalDate) || Boolean(absenceModalMember) || 
-          Boolean(recalcConfirm) || Boolean(quickViewDate);
-        document.body.style.overflow = anyModal ? 'hidden' : '';
-        return () => { document.body.style.overflow = ''; };
-      }, [confirmDialog, recalcModalOpen, modalSlot, batteryModalDate, addSlotDate, searchOpen, noteModalDate, copyModalDate, absenceModalMember, recalcConfirm, quickViewDate]);
-
       const showToast = (msg, withUndo = false) => {
         setToast(msg);
-        setTimeout(() => setToast(null), withUndo ? 6000 : 3200);
+        setTimeout(() => setToast(null), withUndo ? 5500 : 3000);
       };
       const getMember = (id, list = members) => list.find((m) => m.id === id);
       const getName = (id, list = members) => {
@@ -304,6 +507,21 @@
         setDayFilterMode('ALL_MONTH');
       };
 
+      const handleCalendarTouchStart = (e) => {
+        calTouchStartX.current = e.touches[0].clientX;
+        calTouchStartY.current = e.touches[0].clientY;
+      };
+      const handleCalendarTouchEnd = (e) => {
+        if (calTouchStartX.current === null) return;
+        const dx = e.changedTouches[0].clientX - calTouchStartX.current;
+        const dy = e.changedTouches[0].clientY - calTouchStartY.current;
+        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+          if (dx < 0) changeMonth(1);
+          else changeMonth(-1);
+        }
+        calTouchStartX.current = null;
+      };
+
       const goToToday = () => {
         haptic('light');
         const now = new Date();
@@ -315,7 +533,7 @@
         setTimeout(() => {
           const el = document.getElementById(`day-card-${tISO}`);
           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 100);
+        }, 120);
       };
 
       const jumpToMember = (memberId) => {
@@ -323,17 +541,23 @@
         const member = getMember(memberId);
         if (!member) return;
         const today = toISO(new Date());
-        const futureDates = Object.keys(schedules).sort().filter((d) => d >= today && schedules[d]?.slots?.some((s) => s.memberId === memberId));
-        const anyDates = Object.keys(schedules).sort().filter((d) => schedules[d]?.slots?.some((s) => s.memberId === memberId));
+        const futureDates = Object.keys(schedules).sort().filter(
+          (d) => d >= today && (schedules[d]?.slots?.some((s) => s.memberId === memberId) || schedules[d]?.batteryDutyIds?.includes(memberId))
+        );
+        const anyDates = Object.keys(schedules).sort().filter(
+          (d) => schedules[d]?.slots?.some((s) => s.memberId === memberId) || schedules[d]?.batteryDutyIds?.includes(memberId)
+        );
         const target = futureDates[0] || anyDates[anyDates.length - 1];
         if (target) {
           const [y, m] = target.split('-');
+          setTab('SCHEDULE');
+          setDayFilterMode('ALL_MONTH');
           setCalendarMonthISO(`${y}-${m}-01`);
           setSelectedDayISO(target);
           setTimeout(() => {
             const el = document.getElementById(`day-card-${target}`);
             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }, 100);
+          }, 150);
         } else {
           setTab('STATS');
           setStatSearch(member.fullName);
@@ -349,15 +573,13 @@
 
         if (Array.isArray(st.members)) setMembers(st.members);
         if (Array.isArray(st.taskTemplates)) setTaskTemplates(st.taskTemplates);
-        if (st.schedules) {
-          setSchedules((prev) => {
-            const merged = { ...prev, ...st.schedules };
-            Object.keys(merged).forEach((d) => {
-              const day = merged[d];
-              if (day?.batteryDutyIds) day.batteryDutyIds = Array.from(new Set(day.batteryDutyIds));
-            });
-            return merged;
+        if (st.schedules && typeof st.schedules === 'object') {
+          const cleaned = { ...st.schedules };
+          Object.keys(cleaned).forEach((d) => {
+            const day = cleaned[d];
+            if (day?.batteryDutyIds) day.batteryDutyIds = Array.from(new Set(day.batteryDutyIds));
           });
+          setSchedules(cleaned);
         }
         if (Array.isArray(st.logs)) {
           setLogs((prev) => {
@@ -367,7 +589,8 @@
           });
         }
         if (Array.isArray(st.backups)) setBackups(st.backups);
-        setCloudStatus('🟢 Live-синхронизация активна');
+        setCloudStatus('Live • Синхронизировано');
+        setIsCloudOnline(true);
         setPendingSync(false);
       };
 
@@ -375,15 +598,16 @@
         if (!isUserAdmin) return false;
         const nowIso = new Date().toISOString();
         lastSyncTimestampRef.current = new Date(nowIso).getTime();
+        // [FIX #2] Читаем из refs, чтобы не потерять актуальное состояние
         const nextState = {
-          members: overrides.members ?? members,
+          members: overrides.members ?? membersRef.current,
           taskTemplates: overrides.taskTemplates ?? taskTemplates,
-          schedules: overrides.schedules ?? schedules,
-          logs: overrides.logs ?? logs,
-          backups: overrides.backups ?? backups,
+          schedules: overrides.schedules ?? schedulesRef.current,
+          logs: overrides.logs ?? logsRef.current,
+          backups: overrides.backups ?? backupsRef.current,
         };
         try {
-          setCloudStatus('⏳ Сохранение...');
+          setCloudStatus('Сохранение в облако...');
           const res = await fetch(`${SUPA_URL}/rest/v1/duty_sync?on_conflict=room_code`, {
             method: 'POST',
             headers: {
@@ -394,16 +618,27 @@
             },
             body: JSON.stringify({ room_code: ROOM_CODE, state_json: nextState, updated_at: nowIso }),
           });
-          if (!res.ok) { setCloudStatus(`❌ Ошибка (${res.status})`); setPendingSync(true); return false; }
-          setCloudStatus('🟢 Синхронизировано');
+          if (!res.ok) {
+            setCloudStatus(`Ошибка БД (${res.status})`);
+            setIsCloudOnline(false);
+            setPendingSync(true);
+            return false;
+          }
+          setCloudStatus('Live • Синхронизировано');
+          setIsCloudOnline(true);
           setPendingSync(false);
           return true;
-        } catch (e) { setCloudStatus('❌ Ошибка сети'); setPendingSync(true); return false; }
+        } catch (e) {
+          setCloudStatus('Офлайн режим');
+          setIsCloudOnline(false);
+          setPendingSync(true);
+          return false;
+        }
       };
 
       const pullFromCloudNow = async (silent = false) => {
         try {
-          if (!silent) setCloudStatus('⏳ Загрузка...');
+          if (!silent) setCloudStatus('Обновление...');
           const res = await fetch(
             `${SUPA_URL}/rest/v1/duty_sync?room_code=eq.${ROOM_CODE}&select=state_json,updated_at`,
             { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Cache-Control': 'no-cache' } }
@@ -413,16 +648,22 @@
           if (data?.[0]?.state_json && typeof data[0].state_json === 'object') {
             applyRemoteState(data[0].state_json, data[0].updated_at);
           }
-        } catch (e) { if (!silent) setCloudStatus('⚠️ Автономный режим'); }
+        } catch (e) {
+          if (!silent) {
+            setCloudStatus('Автономный режим');
+            setIsCloudOnline(false);
+          }
+        }
       };
 
+      // [FIX #1] Убрана зависимость от pendingSync — интервал и подписка создаются один раз.
       useEffect(() => {
         let cancelled = false;
         let channel = null;
         const loadCloudState = async (silent = false) => {
           if (cancelled) return;
           await pullFromCloudNow(silent);
-          if (pendingSync) pushToCloudNow();
+          if (pendingSyncRef.current) pushToCloudNow();
         };
         loadCloudState(false);
         if (supabaseClient) {
@@ -437,7 +678,7 @@
               }
             ).subscribe();
         }
-        const interval = setInterval(() => loadCloudState(true), 60000);
+        const interval = setInterval(() => loadCloudState(true), 45000);
         const handleVisibilityChange = () => {
           if (document.visibilityState === 'visible') loadCloudState(true);
         };
@@ -448,7 +689,7 @@
           document.removeEventListener('visibilitychange', handleVisibilityChange);
           if (channel && supabaseClient) supabaseClient.removeChannel(channel);
         };
-      }, [pendingSync]);
+      }, []); // <-- пустой массив, эффект один раз
 
       const createLogAndBackup = (actionTitle, detailsText, createSnapshot = false, type = 'OTHER') => {
         const timeStr = new Date().toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -457,17 +698,20 @@
           id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
           time: timeStr, author, action: actionTitle, details: detailsText, type,
         };
-        const nextLogs = [newEntry, ...logs.slice(0, 99)];
+        // [FIX #2] Используем logsRef вместо замыкания
+        const nextLogs = [newEntry, ...logsRef.current.slice(0, 99)];
         setLogs(nextLogs);
-        let nextBackups = backups;
+
+        let nextBackups = backupsRef.current;
         if (createSnapshot) {
           const snap = {
             id: `bk_${Date.now()}`, time: timeStr, type,
             label: `${actionTitle}: ${detailsText.slice(0, 40)}`,
-            schedules: JSON.parse(JSON.stringify(schedules)),
-            members: JSON.parse(JSON.stringify(members)),
+            // [FIX #2] Берем из ref — это ТОЧНО состояние ДО изменения
+            schedules: JSON.parse(JSON.stringify(schedulesRef.current)),
+            members: JSON.parse(JSON.stringify(membersRef.current)),
           };
-          nextBackups = [snap, ...backups.slice(0, 19)];
+          nextBackups = [snap, ...backupsRef.current.slice(0, 19)];
           setBackups(nextBackups);
         }
         return { nextLogs, nextBackups };
@@ -476,16 +720,16 @@
       const restoreBackupSnapshot = (snap) => {
         if (!isUserAdmin) return;
         setConfirmDialog({
-          title: '⏪ Восстановить бэкап?',
+          title: 'Восстановить точку отката?',
           message: `График вернётся к состоянию от ${snap.time} («${snap.label}»).`,
           confirmLabel: 'Восстановить',
           onConfirm: () => {
             setSchedules(snap.schedules);
             if (snap.members) setMembers(snap.members);
-            const { nextLogs } = createLogAndBackup('⏪ Откат из бэкапа', `Версия от ${snap.time}`, false, 'RESTORE');
-            pushToCloudNow({ schedules: snap.schedules, members: snap.members || members, logs: nextLogs });
+            const { nextLogs } = createLogAndBackup('Откат из бэкапа', `Версия от ${snap.time}`, false, 'RESTORE');
+            pushToCloudNow({ schedules: snap.schedules, members: snap.members || membersRef.current, logs: nextLogs });
             setConfirmDialog(null);
-            showToast('⏪ График восстановлен');
+            showToast('График восстановлен');
           },
         });
       };
@@ -573,7 +817,6 @@
           });
       }, [statsMap, statSquadFilter, statSearch, statSortBy, statTaskFilter]);
 
-      // ==== ГЕНЕРАТОР ====
       const canAssignMember = ({ member, dateStr, usedToday, schedulesMap }) => {
         if (member.status !== 'ACTIVE') return false;
         if (inAbsence(member, dateStr)) return false;
@@ -653,6 +896,8 @@
           let slots = templateSlots;
           if (existing && keepExistingSlots && existing.slots && existing.slots.length > 0) {
             slots = existing.slots.map((s) => {
+              // [FIX #4] Жестко сохраняем locked слоты (ручные назначения)
+              if (s.locked) return { ...s };
               if (s.memberId && batteryDutyIds.includes(s.memberId)) {
                 return { ...s, memberId: null, isManual: false, isPenalty: false, unassignedReason: null };
               }
@@ -740,56 +985,46 @@
         const endDate = lastScheduledDate && lastScheduledDate > dateStr ? lastScheduledDate : fallbackEnd;
         const periodDays = daysDiff(endDate, dateStr) + 1;
 
-        // 1. Делаем глубокую копию, чтобы не мутировать состояние
         const cleanedSchedules = JSON.parse(JSON.stringify(schedulesWithManualChange));
-
-        // 2. Пробегаем по всем дням начиная с измененной даты
-        // и СНИМАЕМ всех, кого поставил АВТОМАТ (оставляем только locked = true)
         let cursor = dateStr;
         let guard = 0;
         while (cursor <= endDate && guard < 400) {
           const day = cleanedSchedules[cursor];
           if (day && day.slots) {
-            day.slots = day.slots.map(slot => {
-              if (slot.locked) return slot; // Ручные (закрепленные) не трогаем
-              return { ...slot, memberId: null, isManual: false, isPenalty: false }; // Авто - снимаем
+            day.slots = day.slots.map((slot) => {
+              if (slot.locked) return slot;
+              return { ...slot, memberId: null, isManual: false, isPenalty: false };
             });
           }
           cursor = addDaysISO(cursor, 1);
           guard++;
         }
 
-        // 3. Запускаем генератор. Он заполнит пустые слоты с учетом НОВОГО ручного назначения
         const { updatedSchedules } = runScheduleGenerator(
-          cleanedSchedules, 
-          true, 
-          dateStr, 
-          periodDays, 
-          members, 
-          taskTemplates
+          cleanedSchedules, true, dateStr, periodDays, members, taskTemplates
         );
 
-        const { errors, emptySlots } = validateSchedule(updatedSchedules, members, cooldownDays);
-        if (errors.length > 0) showToast(`⚠️ Ошибок: ${errors.length}`);
-        else if (emptySlots > 0) showToast(`График пересчитан. Свободных: ${emptySlots}`);
-        else showToast('✅ Пересчитано');
-        
+        const { errors, emptySlots } = validateSchedule(updatedSchedules, members);
+        if (errors.length > 0) showToast(`Ошибок: ${errors.length}`);
+        else if (emptySlots > 0) showToast(`Пересчитано • Свободных: ${emptySlots}`);
+        else showToast('График синхронизирован');
+
         return updatedSchedules;
       };
 
       const reportGenerationResult = (updatedSchedules) => {
-        const { errors, emptySlots } = validateSchedule(updatedSchedules, members, cooldownDays);
-        if (errors.length > 0) showToast(`⚠️ Ошибок: ${errors.length}`);
+        const { errors, emptySlots } = validateSchedule(updatedSchedules, members);
+        if (errors.length > 0) showToast(`Ошибок: ${errors.length}`);
         else if (emptySlots > 0) showToast(`Свободных задач: ${emptySlots}`);
-        else showToast('✅ Всё заполнено');
+        else showToast('Месяц успешно распределен');
       };
 
       const fillEmptyDaysInMonth = () => {
         if (!isUserAdmin) return;
         haptic('medium');
-        const before = schedules;
+        const before = JSON.parse(JSON.stringify(schedulesRef.current));
         const { nextLogs, nextBackups } = createLogAndBackup(
-          '⚡ Заполнение месяца', `Заполнены пустые дни за ${currentMonthInfo.monthTitle}`, true, 'RECALC'
+          'Заполнение месяца', `Заполнены пустые дни за ${currentMonthInfo.monthTitle}`, true, 'RECALC'
         );
         const { updatedSchedules } = runScheduleGenerator(
           schedules, true, currentMonthInfo.firstDateISO, currentMonthInfo.daysInMonth, members, taskTemplates
@@ -804,9 +1039,9 @@
         if (!isUserAdmin) return;
         haptic('medium');
         const days = daysDiff(toISO_, fromISO) + 1;
-        const before = schedules;
+        const before = JSON.parse(JSON.stringify(schedulesRef.current));
         const { nextLogs, nextBackups } = createLogAndBackup(
-          '🔄 Пересчет диапазона', `${fromISO}…${toISO_} (${days} дн.), режим: ${resetAll ? 'сброс' : 'дозаполнение'}`, true, 'RECALC'
+          'Пересчет диапазона', `${fromISO}…${toISO_} (${days} дн.), режим: ${resetAll ? 'сброс' : 'дозаполнение'}`, true, 'RECALC'
         );
         const { updatedSchedules } = runScheduleGenerator(
           schedules, !resetAll, fromISO, days, members, taskTemplates
@@ -824,19 +1059,19 @@
         haptic('medium');
         setSchedules(lastUndo.schedules);
         pushToCloudNow({ schedules: lastUndo.schedules });
-        showToast('↩ Отменено');
+        showToast('Действие отменено');
         setLastUndo(null);
       };
 
       const askConfirmDeleteSlot = (dateStr, slotObj) => {
         if (!isUserAdmin) return;
         setConfirmDialog({
-          title: '🗑 Удалить задачу?',
+          title: 'Удалить задачу?',
           message: `Удалить «${slotObj.title}» (${getName(slotObj.memberId)}) из ${formatRuDate(dateStr)}?`,
           confirmLabel: 'Удалить',
           onConfirm: () => {
             haptic('medium');
-            const before = schedules;
+            const before = JSON.parse(JSON.stringify(schedulesRef.current));
             const nextSchedules = {
               ...schedules,
               [dateStr]: {
@@ -845,7 +1080,7 @@
               },
             };
             const { nextLogs, nextBackups } = createLogAndBackup(
-              '🗑 Удалена задача', `${formatRuDate(dateStr)}: «${slotObj.title}» (${getName(slotObj.memberId)})`, true, 'ASSIGNMENT'
+              'Удалена задача', `${formatRuDate(dateStr)}: «${slotObj.title}» (${getName(slotObj.memberId)})`, true, 'ASSIGNMENT'
             );
             const recalculated = regenerateFromDate(dateStr, nextSchedules);
             setLastUndo({ schedules: before, label: 'Удаление задачи' });
@@ -853,7 +1088,7 @@
             pushToCloudNow({ schedules: recalculated, logs: nextLogs, backups: nextBackups });
             setConfirmDialog(null);
             if (modalSlot) setModalSlot(null);
-            showToast('Удалено', true);
+            showToast('Задача удалена', true);
           },
         });
       };
@@ -861,14 +1096,14 @@
       const askConfirmClearDay = (dateStr) => {
         if (!isUserAdmin) return;
         setConfirmDialog({
-          title: `🗑 Очистить сутки ${formatRuDate(dateStr)}?`,
-          message: `Все задачи и наряды на ${dateStr} будут сняты.`,
-          confirmLabel: 'Да, очистить',
+          title: `Очистить сутки ${formatRuDate(dateStr)}?`,
+          message: `Все задачи и суточные наряды на ${dateStr} будут сняты.`,
+          confirmLabel: 'Очистить',
           onConfirm: () => {
             haptic('medium');
-            const before = schedules;
+            const before = JSON.parse(JSON.stringify(schedulesRef.current));
             const nextSchedules = { ...schedules, [dateStr]: { date: dateStr, batteryDutyIds: [], slots: [] } };
-            const { nextLogs, nextBackups } = createLogAndBackup('🗑 Очистка суток', `${formatRuDate(dateStr)}`, true, 'CLEAR');
+            const { nextLogs, nextBackups } = createLogAndBackup('Очистка суток', `${formatRuDate(dateStr)}`, true, 'CLEAR');
             const recalculated = regenerateFromDate(dateStr, nextSchedules);
             setLastUndo({ schedules: before, label: 'Очистка суток' });
             setSchedules(recalculated);
@@ -880,7 +1115,8 @@
       };
 
       const applyManualChangeAndCascade = (dateStr, nextSchedules, logTitle, logDetails, type = 'ASSIGNMENT') => {
-        const before = schedules;
+        // [FIX #2] Берем before из ref — гарантированно актуальное состояние ДО правки
+        const before = JSON.parse(JSON.stringify(schedulesRef.current));
         const { nextLogs, nextBackups } = createLogAndBackup(logTitle, logDetails, true, type);
         const recalculated = regenerateFromDate(dateStr, nextSchedules);
         setLastUndo({ schedules: before, label: logTitle });
@@ -908,12 +1144,12 @@
         };
         applyManualChangeAndCascade(
           date, nextSchedules,
-          isPenalty ? '⚠ Штрафной наряд' : '🔄 Замена',
+          isPenalty ? 'Штрафной наряд' : 'Замена',
           `${formatRuDate(date)} [${slot.title}]: ${oldName} → ${newName}`,
           isPenalty ? 'PENALTY' : 'ASSIGNMENT'
         );
         setModalSlot(null);
-        showToast(`✅ ${newName}`, true);
+        showToast(`Назначен: ${newName}`, true);
       };
 
       const clearSlotAssignment = (dateStr, slotObj, e) => {
@@ -933,9 +1169,9 @@
         };
         applyManualChangeAndCascade(
           dateStr, nextSchedules,
-          '🧹 Снят боец', `${formatRuDate(dateStr)} [${slotObj.title}]`, 'ASSIGNMENT'
+          'Снят боец', `${formatRuDate(dateStr)} [${slotObj.title}]`, 'ASSIGNMENT'
         );
-        showToast('Снято', true);
+        showToast('Назначение снято', true);
       };
 
       const replaceWithBestCandidate = (dateStr, slotObj, e) => {
@@ -951,7 +1187,7 @@
         const best = members
           .filter((m) => m.status === 'ACTIVE' && !inAbsence(m, dateStr) && !usedToday.has(m.id) && !isRecoveringFromBatteryDuty(m.id, dateStr))
           .sort((a, b) => (statsMap[a.id]?.totalAll || 0) - (statsMap[b.id]?.totalAll || 0))[0];
-        if (!best) { showToast('Кандидат не найден'); return; }
+        if (!best) { showToast('Свободный кандидат не найден'); return; }
         const nextSchedules = {
           ...schedules,
           [dateStr]: {
@@ -963,12 +1199,12 @@
         };
         applyManualChangeAndCascade(
           dateStr, nextSchedules,
-          '⭐ Лучший кандидат',
+          'Лучший по очереди',
           `${formatRuDate(dateStr)} [${slotObj.title}]: ${getName(slotObj.memberId)} → ${best.fullName}`,
           'ASSIGNMENT'
         );
         if (modalSlot) setModalSlot(null);
-        showToast(`⭐ ${best.fullName}`, true);
+        showToast(`Назначен: ${best.fullName}`, true);
       };
 
       const replaceWithRandomLeastLoaded = (dateStr, slotObj, e) => {
@@ -985,7 +1221,7 @@
           (m) => m.status === 'ACTIVE' && !inAbsence(m, dateStr) && !usedToday.has(m.id) &&
             m.id !== slotObj.memberId && !isRecoveringFromBatteryDuty(m.id, dateStr)
         );
-        if (eligible.length === 0) { showToast('Нет свободных'); return; }
+        if (eligible.length === 0) { showToast('Нет свободных бойцов'); return; }
         const sorted = eligible.map((m) => ({ m, count: statsMap[m.id]?.totalAll || 0 })).sort((a, b) => a.count - b.count);
         const minCount = sorted[0].count;
         let pool = sorted.filter((x) => x.count <= minCount + 1);
@@ -1003,12 +1239,12 @@
         };
         applyManualChangeAndCascade(
           dateStr, nextSchedules,
-          '🎲 Случайная замена',
+          'Случайный выбор',
           `${formatRuDate(dateStr)} [${slotObj.title}]: ${getName(slotObj.memberId)} → ${chosen.fullName}`,
           'ASSIGNMENT'
         );
         if (modalSlot) setModalSlot(null);
-        showToast(`🎲 ${chosen.fullName}`, true);
+        showToast(`Выбран: ${chosen.fullName}`, true);
       };
 
       const toggleBatteryDutyMember = (dateStr, memberId) => {
@@ -1042,7 +1278,7 @@
 
         applyManualChangeAndCascade(
           dateStr, updatedSchedules,
-          '🛡️ Наряд по батарее',
+          'Наряд по батарее',
           `${formatRuDate(dateStr)}: ${getName(memberId)} (${exists ? 'снят' : 'назначен'})`,
           'BATTERY'
         );
@@ -1072,19 +1308,19 @@
         };
         applyManualChangeAndCascade(
           addSlotDate, nextSchedules,
-          '➕ Добавлена задача',
+          'Добавлена задача',
           `${formatRuDate(addSlotDate)}: «${newSlot.title}» → ${chosen ? getName(chosen.id) : '—'}`,
           'ASSIGNMENT'
         );
         setCustomSlotTitle('');
         setAddSlotDate(null);
-        showToast('Добавлено', true);
+        showToast('Задача добавлена', true);
       };
 
       const copyDayStructure = (fromDate) => {
         if (!isUserAdmin) return;
         const fromDay = schedules[fromDate] || { slots: [] };
-        if (!fromDay.slots?.length) { showToast('Нет структуры для копирования'); return; }
+        if (!fromDay.slots?.length) { showToast('В этом дне нет задач для копирования'); return; }
         setCopyModalDate(fromDate);
         setCopyRange({ from: addDaysISO(fromDate, 1), to: addDaysISO(fromDate, 6) });
       };
@@ -1094,9 +1330,8 @@
         const fromDay = schedules[copyModalDate] || { slots: [] };
         const nextSchedules = { ...schedules };
         let cursor = copyRange.from;
-        const guard = 400;
         let i = 0;
-        while (cursor <= copyRange.to && i < guard) {
+        while (cursor <= copyRange.to && i < 400) {
           const existing = nextSchedules[cursor] || { date: cursor, batteryDutyIds: [], slots: [] };
           const templateSlots = fromDay.slots.map((s, idx) => ({
             id: `${cursor}_copy_${idx}_${Math.random().toString(36).slice(2, 5)}`,
@@ -1107,7 +1342,7 @@
           cursor = addDaysISO(cursor, 1);
           i++;
         }
-        const { nextLogs } = createLogAndBackup('📋 Копирование структуры', `${copyModalDate} → ${copyRange.from}…${copyRange.to}`, false, 'ASSIGNMENT');
+        const { nextLogs } = createLogAndBackup('Копирование структуры', `${copyModalDate} → ${copyRange.from}…${copyRange.to}`, false, 'ASSIGNMENT');
         setSchedules(nextSchedules);
         pushToCloudNow({ schedules: nextSchedules, logs: nextLogs });
         setCopyModalDate(null);
@@ -1118,7 +1353,7 @@
         if (!noteModalDate) return;
         const day = schedules[noteModalDate] || { date: noteModalDate, batteryDutyIds: [], slots: [] };
         const nextSchedules = { ...schedules, [noteModalDate]: { ...day, note: noteText.trim() || null } };
-        const { nextLogs } = createLogAndBackup('📝 Заметка', `${formatRuDate(noteModalDate)}: ${noteText.slice(0, 40)}`, false, 'OTHER');
+        const { nextLogs } = createLogAndBackup('Заметка', `${formatRuDate(noteModalDate)}: ${noteText.slice(0, 40)}`, false, 'OTHER');
         setSchedules(nextSchedules);
         pushToCloudNow({ schedules: nextSchedules, logs: nextLogs });
         setNoteModalDate(null);
@@ -1132,12 +1367,12 @@
             ? { ...m, absences: [...(m.absences || []), { ...absenceForm }] }
             : m
         );
-        const { nextLogs } = createLogAndBackup('🚫 Отсутствие', `${absenceModalMember.fullName}: ${absenceForm.from}…${absenceForm.to}`, false, 'STATUS');
+        const { nextLogs } = createLogAndBackup('Отсутствие', `${absenceModalMember.fullName}: ${absenceForm.from}…${absenceForm.to}`, false, 'STATUS');
         setMembers(nextMembers);
         pushToCloudNow({ members: nextMembers, logs: nextLogs });
         setAbsenceModalMember(null);
         setAbsenceForm({ from: '', to: '', reason: '' });
-        showToast('Отсутствие добавлено');
+        showToast('Период отсутствия сохранен');
       };
 
       const removeAbsence = (memberId, idx) => {
@@ -1146,27 +1381,29 @@
         );
         setMembers(nextMembers);
         pushToCloudNow({ members: nextMembers });
-        showToast('Удалено');
+        showToast('Период удален');
       };
 
       const resetAllData = () => {
         if (!isUserAdmin) return;
         setConfirmDialog({
-          title: '⚠ Сбросить всё?',
-          message: 'Будет создан бэкап, затем очищены график, заметки и журнал. Шаблоны и бойцы сохранятся.',
+          title: 'Сбросить все расписание?',
+          message: 'Перед очисткой автоматически создастся резервная копия в облаке.',
           confirmLabel: 'Сбросить',
           onConfirm: () => {
             const snap = {
               id: `bk_${Date.now()}`, time: new Date().toLocaleString('ru-RU'), type: 'RESET',
-              label: 'Снимок перед сбросом', schedules: JSON.parse(JSON.stringify(schedules)), members: JSON.parse(JSON.stringify(members)),
+              label: 'Снимок перед полным сбросом',
+              schedules: JSON.parse(JSON.stringify(schedulesRef.current)),
+              members: JSON.parse(JSON.stringify(membersRef.current)),
             };
-            const nextBackups = [snap, ...backups.slice(0, 19)];
+            const nextBackups = [snap, ...backupsRef.current.slice(0, 19)];
             const emptySchedules = {};
             setSchedules(emptySchedules);
             setBackups(nextBackups);
             pushToCloudNow({ schedules: emptySchedules, backups: nextBackups });
             setConfirmDialog(null);
-            showToast('Сброшено. Бэкап сохранён.');
+            showToast('График очищен, бэкап сохранен');
           },
         });
       };
@@ -1176,13 +1413,43 @@
         const m = getMember(memberId);
         if (!m || m.status !== 'ACTIVE') w.push('Не в строю');
         if (m && inAbsence(m, dateStr)) w.push('Отсутствует');
-        if (schedules[dateStr]?.batteryDutyIds?.includes(memberId)) w.push('Уже в наряде');
-        if (schedules[dateStr]?.slots?.some((s) => s.memberId === memberId && (!modalSlot || s.id !== modalSlot.slot.id))) w.push('Уже назначен');
-        if (isRecoveringFromBatteryDuty(memberId, dateStr)) w.push('Отдыхает после наряда');
+        if (schedules[dateStr]?.batteryDutyIds?.includes(memberId)) w.push('В наряде');
+        if (schedules[dateStr]?.slots?.some((s) => s.memberId === memberId && (!modalSlot || s.id !== modalSlot.slot.id))) w.push('Уже занят сегодня');
+        if (isRecoveringFromBatteryDuty(memberId, dateStr)) w.push('Отдых после наряда');
         return w;
       };
 
+      const copyTodayTomorrowToChat = async () => {
+        haptic('light');
+        const lines = [`📋 *СВОДКА ДЕЖУРСТВ И НАРЯДОВ*`, ''];
+        [
+          { title: 'СЕГОДНЯ', iso: todayISO, d: todayDay },
+          { title: 'ЗАВТРА', iso: tomorrowISO, d: tomorrowDay },
+        ].forEach(({ title, iso, d }) => {
+          lines.push(`📅 *${title}: ${formatRuDate(iso).toUpperCase()}* (${iso})`);
+          if (d.note) lines.push(`📝 Заметка: _${d.note}_`);
+          if (d.batteryDutyIds?.length > 0) {
+            lines.push(`🛡 Наряд по батарее: *${d.batteryDutyIds.map((id) => getMember(id)?.fullName).join(', ')}*`);
+          }
+          if (!d.slots || d.slots.length === 0) {
+            lines.push(`— Задач нет`);
+          } else {
+            d.slots.forEach((s) => {
+              lines.push(`• ${s.title}: *${getName(s.memberId)}*${s.isPenalty ? ' [ШТРАФ]' : ''}`);
+            });
+          }
+          lines.push('');
+        });
+        try {
+          await navigator.clipboard.writeText(lines.join('\n'));
+          showToast('Сводка скопирована в буфер обмена');
+        } catch (e) {
+          showToast('Ошибка буфера обмена');
+        }
+      };
+
       const runBuiltInUnitTests = () => {
+        haptic('light');
         const results = [];
         try {
           const r1 = runScheduleGenerator({}, false, '2026-10-01', 14, INITIAL_MEMBERS, INITIAL_TEMPLATES);
@@ -1193,34 +1460,30 @@
           );
           const vals = Object.values(counts1);
           const spread = Math.max(...vals) - Math.min(...vals);
-          results.push({ name: '1. Равномерность 23/14', passed: spread <= 2, detail: `Разброс: ${spread}` });
+          results.push({ name: 'Равномерность 23 чел. / 14 дней', passed: spread <= 2, detail: `Макс. разница смен: ${spread}` });
 
           const allSick = INITIAL_MEMBERS.map((m) => ({ ...m, status: 'SICK' }));
           const rSick = runScheduleGenerator({}, false, '2026-10-01', 5, allSick, INITIAL_TEMPLATES);
           const hasAssign = Object.values(rSick.updatedSchedules).some((d) => d.slots.some((s) => s.memberId));
-          results.push({ name: '2. Все больны → пусто', passed: !hasAssign, detail: `Назначено: ${hasAssign ? 'да' : 'нет'}` });
+          results.push({ name: 'Защита неактивных статусов', passed: !hasAssign, detail: `Назначений вне строя: ${hasAssign ? 'есть' : '0'}` });
 
           const oneMember = [{ id: 'x1', fullName: 'Один', squad: 1, status: 'ACTIVE', absences: [] }];
           const rOne = runScheduleGenerator({}, false, '2026-10-01', 3, oneMember, INITIAL_TEMPLATES);
-          const valid = validateSchedule(rOne.updatedSchedules, oneMember, 2);
-          results.push({ name: '3. 1 боец, нет двойных', passed: valid.errors.length === 0, detail: `Ошибок: ${valid.errors.length}` });
+          const valid = validateSchedule(rOne.updatedSchedules, oneMember);
+          results.push({ name: 'Исключение двойных смен в сутки', passed: valid.errors.length === 0, detail: `Конфликтов: ${valid.errors.length}` });
 
           const withAbsence = [{ ...INITIAL_MEMBERS[0], absences: [{ from: '2026-10-01', to: '2026-10-05', reason: 'тест' }] }, ...INITIAL_MEMBERS.slice(1)];
           const rAbs = runScheduleGenerator({}, false, '2026-10-01', 5, withAbsence, INITIAL_TEMPLATES);
           const inAbs = Object.values(rAbs.updatedSchedules).some((d) => d.slots.some((s) => s.memberId === INITIAL_MEMBERS[0].id));
-          results.push({ name: '4. Отсутствие соблюдается', passed: !inAbs, detail: `Назначен: ${inAbs ? 'да' : 'нет'}` });
+          results.push({ name: 'Учет отпусков и отсутствий', passed: !inAbs, detail: `Назначений в отпуске: ${inAbs ? 'есть' : '0'}` });
 
           const batSeed = { '2026-10-05': { date: '2026-10-05', batteryDutyIds: ['m05'], slots: [] } };
           const rBat = runScheduleGenerator(batSeed, true, '2026-10-05', 3, INITIAL_MEMBERS, INITIAL_TEMPLATES);
           const onD = rBat.updatedSchedules['2026-10-05'].slots.some((s) => s.memberId === 'm05');
           const onD1 = rBat.updatedSchedules['2026-10-06'].slots.some((s) => s.memberId === 'm05');
-          results.push({ name: '5. Защита D и D+1', passed: !onD && !onD1, detail: `D: ${onD ? 'да' : 'нет'}, D+1: ${onD1 ? 'да' : 'нет'}` });
-
-          const rMany = runScheduleGenerator({}, false, '2026-10-01', 10, INITIAL_MEMBERS, INITIAL_TEMPLATES);
-          const vMany = validateSchedule(rMany.updatedSchedules, INITIAL_MEMBERS, 2);
-          results.push({ name: '6. Валидатор на 10 днях', passed: vMany.errors.length === 0, detail: `Ошибок: ${vMany.errors.length}` });
+          results.push({ name: 'Освобождение после наряда (D и D+1)', passed: !onD && !onD1, detail: `D: ${onD ? 'да' : 'нет'}, D+1: ${onD1 ? 'да' : 'нет'}` });
         } catch (err) {
-          results.push({ name: 'Ошибка тестов', passed: false, detail: String(err) });
+          results.push({ name: 'Ошибка выполнения', passed: false, detail: String(err) });
         }
         setTestResults(results);
       };
@@ -1233,243 +1496,406 @@
       const todayDay = schedules[todayISO] || { date: todayISO, batteryDutyIds: [], slots: [] };
       const tomorrowDay = schedules[tomorrowISO] || { date: tomorrowISO, batteryDutyIds: [], slots: [] };
 
+      const gaugeRadius = 15;
+      const gaugeCircumference = 2 * Math.PI * gaugeRadius;
+      const gaugeOffset = gaugeCircumference - (fairnessMetrics.index / 100) * gaugeCircumference;
+
       return (
         <div className={darkMode ? 'dark' : ''}>
-          <div className="max-w-md mx-auto min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 safe-bottom relative shadow-xl transition-colors duration-200">
+          <div className="max-w-md mx-auto min-h-screen bg-[#F4F5F9] dark:bg-obsidian-950 text-slate-900 dark:text-slate-100 safe-bottom relative overflow-x-hidden transition-colors duration-300">
+            
+            <div className="pointer-events-none fixed top-0 left-1/2 -translate-x-1/2 w-96 h-64 bg-indigo-600/15 dark:bg-indigo-500/10 blur-[90px] rounded-full z-0" />
+
             {toast && (
-              <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 dark:bg-indigo-600 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-lg whitespace-nowrap max-w-[92vw] flex items-center gap-2">
+              <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-950 backdrop-blur-md text-xs font-bold pl-4 pr-3 py-2.5 rounded-2xl shadow-2xl flex items-center gap-3 max-w-[92vw] spring-enter border border-white/10">
                 <span className="truncate">{toast}</span>
                 {lastUndo && (
-                  <button onClick={undoLastAction} className="bg-white/20 px-2 py-1 rounded-lg shrink-0">↩ Отменить</button>
+                  <button
+                    onClick={undoLastAction}
+                    className="px-2.5 py-1 rounded-xl bg-indigo-500 text-white font-extrabold text-[11px] flex items-center gap-1 shrink-0 press-scale"
+                  >
+                    <Icon name="undo" size={12} /> Отменить
+                  </button>
                 )}
               </div>
             )}
 
-            {pendingSync && (
-              <div
-                onClick={() => pushToCloudNow()}
-                className="fixed top-14 left-1/2 -translate-x-1/2 z-40 bg-rose-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg cursor-pointer fade-in"
-              >
-                ⚠ Изменения не сохранены в облако. Нажмите, чтобы повторить.
-              </div>
-            )}
-
-            {/* ШАПКА */}
-            <header className="bg-indigo-700 dark:bg-slate-900 text-white px-4 pt-3.5 pb-3 sticky top-0 z-20 shadow border-b border-indigo-800 dark:border-slate-800">
+            <header className="glass-header sticky top-0 z-30 px-4 pt-3.5 pb-3 border-b border-slate-200/70 dark:border-white/[0.07]">
               <div className="flex items-center justify-between gap-2">
-                <div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <h1 className="text-base font-extrabold tracking-tight">Контроль Взвода</h1>
-                    {isUserAdmin ? (
-                      <span className="text-[10px] bg-amber-400 text-slate-950 px-1.5 py-0.5 rounded font-extrabold">👑 Редактор</span>
-                    ) : (
-                      <button onClick={unlockAdminAccess} className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded font-semibold underline">
-                        👁 Просмотр
-                      </button>
-                    )}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 shrink-0">
+                    <Icon name="shield" size={20} />
                   </div>
-                  <p className="text-[10px] text-indigo-200 dark:text-slate-400 mt-0.5">{cloudStatus}</p>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h1 className="text-[15px] font-extrabold tracking-tight text-slate-900 dark:text-white truncate">
+                        Контроль Взвода
+                      </h1>
+                      {isUserAdmin ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-500/25 px-2 py-0.5 rounded-full font-extrabold">
+                          <Icon name="crown" size={11} /> Редактор
+                        </span>
+                      ) : (
+                        <button
+                          onClick={unlockAdminAccess}
+                          className="text-[10px] bg-slate-200/70 dark:bg-white/10 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-bold press-scale"
+                        >
+                          Просмотр
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className={`w-1.5 h-1.5 rounded-full ${isCloudOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
+                        {cloudStatus}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => setSearchOpen(true)} className="p-2 rounded-xl bg-white/15 text-xs" title="Поиск">🔍</button>
-                  <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-xl bg-white/15 text-xs" title="Тема">
-                    {darkMode ? '☀️' : '🌙'}
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={copyTodayTomorrowToChat}
+                    className="h-9 px-3 rounded-xl bg-slate-100 dark:bg-obsidian-800 border border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 press-scale"
+                    title="Скопировать сводку"
+                  >
+                    <Icon name="share" size={14} />
+                    <span className="hidden xs:inline">Сводка</span>
+                  </button>
+                  <button
+                    onClick={() => setSearchOpen(true)}
+                    className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-obsidian-800 border border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-200 flex items-center justify-center press-scale"
+                    title="Поиск бойца"
+                  >
+                    <Icon name="search" size={16} />
+                  </button>
+                  <button
+                    onClick={() => { haptic('light'); setDarkMode(!darkMode); }}
+                    className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-obsidian-800 border border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-200 flex items-center justify-center press-scale"
+                    title="Тема"
+                  >
+                    <Icon name={darkMode ? 'sun' : 'moon'} size={16} />
                   </button>
                 </div>
               </div>
-              <div className="mt-2.5 pt-2 border-t border-white/15 flex items-center justify-between text-[11px]">
-                <div className="flex items-center gap-2">
-                  <span className="text-indigo-100">Баланс:</span>
-                  <span className={`px-1.5 py-0.2 rounded font-extrabold ${
-                    fairnessMetrics.index >= 85 ? 'bg-emerald-400 text-slate-950'
-                    : fairnessMetrics.index >= 70 ? 'bg-amber-300 text-slate-950'
-                    : 'bg-rose-400 text-white'}`}>
-                    {fairnessMetrics.index}%
-                  </span>
-                  {monthHoleCount > 0 && (
-                    <span className="bg-rose-500 text-white px-1.5 py-0.2 rounded font-extrabold">
-                      🕳 {monthHoleCount}
-                    </span>
-                  )}
+
+              <div className="mt-3 pt-2.5 border-t border-slate-200/60 dark:border-white/[0.06] flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="relative w-9 h-9 flex items-center justify-center">
+                    <svg className="w-9 h-9 -rotate-90" viewBox="0 0 36 36">
+                      <circle cx="18" cy="18" r={gaugeRadius} fill="none" className="stroke-slate-200 dark:stroke-obsidian-700" strokeWidth="3.2" />
+                      <circle
+                        cx="18" cy="18" r={gaugeRadius} fill="none"
+                        stroke={fairnessMetrics.index >= 85 ? '#10b981' : fairnessMetrics.index >= 70 ? '#f59e0b' : '#f43f5e'}
+                        strokeWidth="3.2" strokeDasharray={gaugeCircumference} strokeDashoffset={gaugeOffset} strokeLinecap="round"
+                      />
+                    </svg>
+                    <span className="absolute text-[9px] font-mono font-bold">{fairnessMetrics.index}%</span>
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-bold text-slate-700 dark:text-slate-200">Индекс равномерности</div>
+                    <div className="text-[10px] font-mono text-slate-400">
+                      Разброс: {fairnessMetrics.min}–{fairnessMetrics.max} смен (σ={fairnessMetrics.stdDev.toFixed(2)})
+                    </div>
+                  </div>
                 </div>
-                <span className="text-indigo-200 font-mono text-[10px]">
-                  {fairnessMetrics.min}–{fairnessMetrics.max} смен (σ={fairnessMetrics.stdDev.toFixed(2)})
-                </span>
+
+                {monthHoleCount > 0 ? (
+                  <button
+                    onClick={() => { setTab('SCHEDULE'); setShowOnlyUnassigned(true); }}
+                    className="px-2.5 py-1 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/25 text-[11px] font-extrabold press-scale"
+                  >
+                    Пустых: {monthHoleCount}
+                  </button>
+                ) : (
+                  <span className="px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-extrabold flex items-center gap-1">
+                    <Icon name="check" size={12} /> Укомплектовано
+                  </span>
+                )}
               </div>
             </header>
 
-            {/* ЭКРАН СЕГОДНЯ */}
             {tab === 'TODAY' && (
-              <div className="p-3 space-y-3 fade-in">
-                {[
-                  { label: '📌 Сегодня', iso: todayISO, day: todayDay },
-                  { label: '➡️ Завтра', iso: tomorrowISO, day: tomorrowDay },
-                ].map(({ label, iso, day }) => (
-                  <div key={iso} className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-[10px] font-extrabold uppercase text-indigo-600 dark:text-indigo-400">{label}</div>
-                        <div className="text-sm font-extrabold capitalize">{formatRuDate(iso)}</div>
-                      </div>
-                      <span className="text-[11px] font-mono text-slate-400">{iso}</span>
+              <div className="p-4 space-y-4 spring-enter relative z-10">
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div className="card-surface rounded-2xl p-3">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">В строю</div>
+                    <div className="text-xl font-extrabold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
+                      {members.filter((m) => m.status === 'ACTIVE' && !inAbsence(m, todayISO)).length}
+                      <span className="text-xs text-slate-400 font-normal">/{members.length}</span>
                     </div>
-                    {day.note && (
-                      <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 text-[11px] font-bold text-amber-900 dark:text-amber-200">
-                        📝 {day.note}
-                      </div>
-                    )}
-                    {day.batteryDutyIds?.length > 0 && (
-                      <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 text-xs">
-                        🛡️ <b>{day.batteryDutyIds.map((id) => getMember(id)?.fullName).join(', ')}</b>
-                      </div>
-                    )}
-                    {day.slots?.length ? day.slots.map((slot) => {
-                      const m = getMember(slot.memberId);
-                      return (
-                        <div key={slot.id} className={`p-2 rounded-lg text-xs flex justify-between ${slot.isPenalty ? 'bg-rose-50 dark:bg-rose-950/40' : 'bg-slate-50 dark:bg-slate-800'}`}>
-                          <span className="font-bold">{slot.title}</span>
-                          <span className={m ? 'font-extrabold' : 'text-rose-500 font-bold'}>{m ? m.fullName : '—'}</span>
+                  </div>
+                  <div className="card-surface rounded-2xl p-3">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">В наряде</div>
+                    <div className="text-xl font-extrabold font-mono text-amber-600 dark:text-amber-400 mt-0.5">
+                      {todayDay.batteryDutyIds?.length || 0}
+                    </div>
+                  </div>
+                  <div className="card-surface rounded-2xl p-3">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Отсутствуют</div>
+                    <div className="text-xl font-extrabold font-mono text-rose-600 dark:text-rose-400 mt-0.5">
+                      {members.filter((m) => m.status !== 'ACTIVE' || inAbsence(m, todayISO)).length}
+                    </div>
+                  </div>
+                </div>
+
+                {[
+                  { badge: 'Сегодня', accent: 'from-indigo-500 to-violet-600', iso: todayISO, day: todayDay },
+                  { badge: 'Завтра', accent: 'from-slate-600 to-slate-800', iso: tomorrowISO, day: tomorrowDay },
+                ].map(({ badge, accent, iso, day }) => (
+                  <div key={iso} className="card-surface rounded-3xl p-4 space-y-3.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span className={`px-2.5 py-1 rounded-xl bg-gradient-to-r ${accent} text-white text-[10px] font-extrabold uppercase tracking-wider shadow-sm`}>
+                          {badge}
+                        </span>
+                        <div>
+                          <div className="text-sm font-extrabold capitalize">{formatRuDate(iso)}</div>
+                          <div className="text-[11px] font-mono text-slate-400">{iso}</div>
                         </div>
-                      );
-                    }) : <div className="text-center text-xs text-slate-400 py-2">Задач нет</div>}
+                      </div>
+                      {isUserAdmin && (
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => setBatteryModalDate(iso)} className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 press-scale" title="Суточный наряд">
+                            <Icon name="shield" size={15} />
+                          </button>
+                          <button onClick={() => setAddSlotDate(iso)} className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 press-scale" title="Добавить задачу">
+                            <Icon name="plus" size={15} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {day.note && (
+                      <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs font-semibold text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                        <Icon name="note" size={15} className="text-amber-500" />
+                        <span>{day.note}</span>
+                      </div>
+                    )}
+
+                    {day.batteryDutyIds?.length > 0 && (
+                      <div className="p-3 rounded-2xl bg-gradient-to-r from-amber-500/15 to-orange-500/10 border border-amber-500/25 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Icon name="shield" size={16} className="text-amber-500" />
+                          <span className="text-xs font-bold text-amber-900 dark:text-amber-200">Наряд по батарее</span>
+                        </div>
+                        <span className="text-xs font-extrabold text-amber-950 dark:text-white">
+                          {day.batteryDutyIds.map((id) => getMember(id)?.fullName).join(', ')}
+                        </span>
+                      </div>
+                    )}
+
+                    {day.slots?.length ? (
+                      <div className="space-y-2">
+                        {day.slots.map((slot) => {
+                          const m = getMember(slot.memberId);
+                          const sq = m ? SQUAD_STYLE[m.squad] : null;
+                          return (
+                            <div
+                              key={slot.id}
+                              onClick={() => { if (isUserAdmin) { haptic('light'); setAssignMode('REGULAR'); setModalSlot({ date: iso, slot }); } }}
+                              className={`p-3 rounded-2xl border flex items-center justify-between gap-3 ${
+                                isUserAdmin ? 'cursor-pointer press-scale' : ''
+                              } ${slot.isPenalty ? 'bg-rose-500/10 border-rose-500/25' : 'bg-slate-50/80 dark:bg-obsidian-800/70 border-slate-200/70 dark:border-white/[0.06]'}`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${sq ? sq.avatar : 'from-slate-400 to-slate-500'} text-white font-extrabold text-xs flex items-center justify-center shadow-xs shrink-0`}>
+                                  {m ? m.fullName.slice(0, 2).toUpperCase() : '?'}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 truncate">
+                                    {slot.title}
+                                  </div>
+                                  <div className="text-sm font-extrabold text-slate-900 dark:text-white truncate">
+                                    {m ? m.fullName : 'Не назначен'}
+                                  </div>
+                                </div>
+                              </div>
+                              {m && <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 ${sq.badge}`}>{m.squad} отд.</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center text-xs text-slate-400 py-4 border border-dashed border-slate-200 dark:border-white/10 rounded-2xl">
+                        На этот день задачи еще не сформированы
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             )}
 
-            {/* КАЛЕНДАРЬ */}
             {tab === 'SCHEDULE' && (
-              <div className="p-3 space-y-3 fade-in">
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-3 shadow-xs border border-slate-200 dark:border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between gap-1">
-                    <button onClick={() => changeMonth(-1)} className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-extrabold">◀</button>
+              <div className="p-4 space-y-4 spring-enter relative z-10">
+                <div
+                  onTouchStart={handleCalendarTouchStart}
+                  onTouchEnd={handleCalendarTouchEnd}
+                  className="card-surface rounded-3xl p-4 space-y-3.5"
+                >
+                  <div className="flex items-center justify-between">
+                    <button onClick={() => changeMonth(-1)} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-obsidian-800 border border-slate-200/70 dark:border-white/10 flex items-center justify-center press-scale">
+                      <Icon name="chevronLeft" size={18} />
+                    </button>
                     <div className="text-center">
-                      <div className="text-sm font-extrabold uppercase tracking-wide capitalize text-indigo-700 dark:text-indigo-400">{currentMonthInfo.monthTitle}</div>
-                      <button onClick={goToToday} className="text-[10px] font-bold text-slate-500 underline mt-0.5">Сегодня</button>
+                      <div className="text-sm font-extrabold uppercase tracking-wider capitalize text-slate-900 dark:text-white">
+                        {currentMonthInfo.monthTitle}
+                      </div>
+                      <button onClick={goToToday} className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 mt-0.5">
+                        Свайп влево/вправо • К сегодня
+                      </button>
                     </div>
-                    <button onClick={() => changeMonth(1)} className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-extrabold">▶</button>
+                    <button onClick={() => changeMonth(1)} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-obsidian-800 border border-slate-200/70 dark:border-white/10 flex items-center justify-center press-scale">
+                      <Icon name="chevronRight" size={18} />
+                    </button>
                   </div>
 
                   <div>
-                    <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-extrabold uppercase text-slate-400 mb-1">
-                      <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
+                    <div className="grid grid-cols-7 gap-1.5 text-center text-[10px] font-extrabold uppercase text-slate-400 mb-1.5">
+                      <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div className="text-rose-400">Сб</div><div className="text-rose-400">Вс</div>
                     </div>
-                    <div className="grid grid-cols-7 gap-1">
+                    <div className="grid grid-cols-7 gap-1.5">
                       {currentMonthInfo.cells.map((cell, idx) => {
-                        if (!cell) return <div key={idx} className="h-12 rounded-xl bg-slate-50/50 dark:bg-slate-900/30" />;
+                        if (!cell) return <div key={idx} className="h-12 rounded-2xl opacity-0" />;
                         const dayData = schedules[cell.iso];
-                        const hasHoles = dayData?.slots?.some((s) => !s.memberId);
+                        const totalSlots = dayData?.slots?.length || 0;
+                        const assignedSlots = dayData?.slots?.filter((s) => s.memberId).length || 0;
+                        const hasHoles = totalSlots > 0 && assignedSlots < totalSlots;
                         const hasBat = (dayData?.batteryDutyIds?.length || 0) > 0;
                         const hasNote = !!dayData?.note;
                         const isToday = cell.iso === todayISO;
                         const isSelected = cell.iso === selectedDayISO && dayFilterMode === 'SINGLE_DAY';
                         const isPast = cell.iso < todayISO;
-                        const hasAbsence = members.some((m) => inAbsence(m, cell.iso));
+
                         return (
-                          <button key={cell.iso}
-                            onClick={() => {
-                              haptic('light');
-                              setQuickViewDate(cell.iso); 
-                              setSelectedDayISO(cell.iso);
-                            }}
-                            className={`h-12 rounded-xl border p-1 flex flex-col items-center justify-between transition relative ${hasHoles ? 'dot-hole' : ''} ${
-                              isSelected ? 'border-2 border-indigo-600 bg-indigo-50 dark:bg-indigo-950'
-                              : isToday ? 'border-2 border-amber-500 bg-amber-50/60 dark:bg-amber-950/50'
-                              : isPast ? 'border-slate-200 bg-slate-50 opacity-85' : 'border-slate-200 bg-white dark:bg-slate-800/80'}`}>
-                            <div className="flex items-center gap-0.5 text-xs">
-                              <span className={`font-extrabold ${isToday ? 'text-amber-700 dark:text-amber-300' : ''}`}>{cell.dayNum}</span>
-                              {hasBat && <span className="text-[9px]">🛡️</span>}
-                              {hasNote && <span className="text-[9px]">📝</span>}
-                              {hasAbsence && <span className="text-[9px]">🚫</span>}
+                          <button
+                            key={cell.iso}
+                            onClick={() => { haptic('light'); setQuickViewDate(cell.iso); setSelectedDayISO(cell.iso); }}
+                            className={`h-12 rounded-2xl p-1 flex flex-col items-center justify-between press-scale relative border transition-all ${
+                              hasHoles ? 'hole-ring' : ''
+                            } ${
+                              isSelected
+                                ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-500/30'
+                                : isToday
+                                ? 'bg-amber-500/15 border-amber-500 text-amber-600 dark:text-amber-300'
+                                : isPast
+                                ? 'bg-slate-100/70 dark:bg-obsidian-800/40 border-transparent opacity-65'
+                                : 'bg-slate-50 dark:bg-obsidian-800/90 border-slate-200/60 dark:border-white/[0.06]'
+                            }`}
+                          >
+                            <div className="flex items-center gap-0.5">
+                              <span className="text-xs font-extrabold font-mono">{cell.dayNum}</span>
+                              {hasBat && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />}
+                              {hasNote && <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />}
                             </div>
-                            <span className="text-[9px] text-slate-400">—</span>
+                            {totalSlots > 0 ? (
+                              <span className={`text-[9px] font-mono font-bold px-1.5 rounded-md ${
+                                isSelected ? 'bg-white/20 text-white' : hasHoles ? 'bg-rose-500/20 text-rose-500' : 'text-slate-500 dark:text-slate-400'
+                              }`}>
+                                {hasHoles ? `${assignedSlots}/${totalSlots}` : `${assignedSlots}`}
+                              </span>
+                            ) : (
+                              <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700 mb-1" />
+                            )}
                           </button>
                         );
                       })}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-                    <button onClick={() => setDayFilterMode('ALL_MONTH')}
-                      className={`py-1.5 rounded-lg text-xs font-bold ${dayFilterMode === 'ALL_MONTH' ? 'bg-white dark:bg-slate-900 text-indigo-600' : 'text-slate-500'}`}>
-                      📋 Весь месяц
+                  <div className="grid grid-cols-2 gap-1.5 bg-slate-100 dark:bg-obsidian-800 p-1 rounded-2xl">
+                    <button
+                      onClick={() => setDayFilterMode('ALL_MONTH')}
+                      className={`py-2 rounded-xl text-xs font-extrabold transition ${dayFilterMode === 'ALL_MONTH' ? 'bg-white dark:bg-obsidian-900 text-slate-900 dark:text-white shadow-xs' : 'text-slate-500'}`}
+                    >
+                      Весь месяц (1–{currentMonthInfo.daysInMonth})
                     </button>
-                    <button onClick={() => setDayFilterMode('SINGLE_DAY')}
-                      className={`py-1.5 rounded-lg text-xs font-bold ${dayFilterMode === 'SINGLE_DAY' ? 'bg-white dark:bg-slate-900 text-indigo-600' : 'text-slate-500'}`}>
-                      🔍 {formatRuDate(selectedDayISO)}
+                    <button
+                      onClick={() => setDayFilterMode('SINGLE_DAY')}
+                      className={`py-2 rounded-xl text-xs font-extrabold transition ${dayFilterMode === 'SINGLE_DAY' ? 'bg-white dark:bg-obsidian-900 text-slate-900 dark:text-white shadow-xs' : 'text-slate-500'}`}
+                    >
+                      День: {formatRuDate(selectedDayISO)}
                     </button>
                   </div>
 
                   {isUserAdmin && (
-                    <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                      <input type="checkbox" checked={showOnlyUnassigned} onChange={(e) => setShowOnlyUnassigned(e.target.checked)} className="w-4 h-4" />
-                      Только свободные задачи
-                    </label>
-                  )}
-
-                  {isUserAdmin && (
                     <div className="flex items-center justify-between gap-2 pt-1">
-                      <button onClick={fillEmptyDaysInMonth} className="flex-1 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl">⚡ Заполнить пустые</button>
-                      <button onClick={() => {
-                        setRecalcModalOpen(true);
-                        setRecalcRange({ from: currentMonthInfo.firstDateISO, to: currentMonthInfo.lastDateISO });
-                      }} className="px-3 py-2 bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 text-xs font-bold rounded-xl">🔄 Пересчет</button>
+                      <button onClick={fillEmptyDaysInMonth} className="flex-1 py-2.5 px-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-xs font-extrabold rounded-2xl shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-1.5 press-scale">
+                        <Icon name="sparkles" size={15} /> Автозаполнение
+                      </button>
+                      <button
+                        onClick={() => { setRecalcModalOpen(true); setRecalcRange({ from: currentMonthInfo.firstDateISO, to: currentMonthInfo.lastDateISO }); }}
+                        className="py-2.5 px-3.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-xs font-extrabold rounded-2xl flex items-center gap-1.5 press-scale"
+                      >
+                        <Icon name="refresh" size={14} /> Пересчет
+                      </button>
                     </div>
                   )}
                 </div>
 
                 {visibleDays.map((day) => {
                   const batteryIds = day.batteryDutyIds || [];
-                  const prevDayBatteryIds = schedules[addDaysISO(day.date, -1)]?.batteryDutyIds || [];
                   const isToday = day.date === todayISO;
                   const isPast = day.date < todayISO;
                   const slotsToShow = (day.slots || []).filter((s) => !showOnlyUnassigned || !s.memberId);
                   const hasAbsenceToday = members.filter((m) => inAbsence(m, day.date));
+
                   return (
-                    <div id={`day-card-${day.date}`} key={day.date}
-                      className={`rounded-2xl border p-3.5 shadow-xs space-y-2.5 transition-all duration-200 ${
-                        isToday ? 'bg-white dark:bg-slate-900 border-2 border-amber-500'
-                        : isPast ? 'bg-slate-50/90 dark:bg-slate-900/70 border-slate-200'
-                                 : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'}`}>
-                      <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800 flex-wrap gap-1.5">
-                        <div className="flex items-center gap-1.5 flex-wrap">
+                    <div id={`day-card-${day.date}`} key={day.date} className={`card-surface rounded-3xl p-4 space-y-3 transition-all ${isToday ? 'ring-2 ring-amber-500/70' : isPast ? 'opacity-80' : ''}`}>
+                      <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-white/[0.06] flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
                           <span className="text-sm font-extrabold capitalize">{formatRuDate(day.date)}</span>
-                          {isToday && <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-400 text-slate-950">СЕГОДНЯ</span>}
-                          {isPast && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">Архив</span>}
+                          <span className="text-[11px] font-mono text-slate-400">{day.date.slice(8)}.{day.date.slice(5, 7)}</span>
+                          {isToday && <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-amber-500 text-slate-950">Сегодня</span>}
                         </div>
+
                         {isUserAdmin && (
-                          <div className="flex items-center gap-1 flex-wrap">
-                            <button onClick={() => { setNoteModalDate(day.date); setNoteText(day.note || ''); }} className="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200">📝</button>
-                            <button onClick={() => copyDayStructure(day.date)} className="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200">📋</button>
-                            <button onClick={() => setBatteryModalDate(day.date)} className="text-[10px] font-bold px-2 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">🛡️</button>
-                            <button onClick={() => setAddSlotDate(day.date)} className="text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">+</button>
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => { setNoteModalDate(day.date); setNoteText(day.note || ''); }} className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-obsidian-800 text-slate-500 dark:text-slate-300 flex items-center justify-center press-scale" title="Заметка">
+                              <Icon name="note" size={14} />
+                            </button>
+                            <button onClick={() => copyDayStructure(day.date)} className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-obsidian-800 text-slate-500 dark:text-slate-300 flex items-center justify-center press-scale" title="Копировать">
+                              <Icon name="copy" size={14} />
+                            </button>
+                            <button onClick={() => setBatteryModalDate(day.date)} className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center press-scale" title="Наряд">
+                              <Icon name="shield" size={14} />
+                            </button>
+                            <button onClick={() => setAddSlotDate(day.date)} className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center press-scale" title="+ Задача">
+                              <Icon name="plus" size={15} />
+                            </button>
                             {(day.slots?.length > 0 || batteryIds.length > 0) && (
-                              <button onClick={() => askConfirmClearDay(day.date)} className="text-[10px] font-bold px-2 py-1 rounded-lg bg-rose-50 text-rose-600 border border-rose-200">🗑</button>
+                              <button onClick={() => askConfirmClearDay(day.date)} className="w-8 h-8 rounded-xl bg-rose-500/15 text-rose-500 flex items-center justify-center press-scale" title="Очистить">
+                                <Icon name="trash" size={14} />
+                              </button>
                             )}
                           </div>
                         )}
                       </div>
 
                       {day.note && (
-                        <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 text-[11px] font-bold text-amber-900 dark:text-amber-200">
-                          📝 {day.note}
+                        <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs font-semibold text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                          <Icon name="note" size={14} className="text-amber-500" />
+                          <span>{day.note}</span>
                         </div>
                       )}
 
                       {hasAbsenceToday.length > 0 && (
-                        <div className="p-2 rounded-lg bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200 text-[11px]">
-                          🚫 <b>Отсутствуют:</b> {hasAbsenceToday.map((m) => m.fullName).join(', ')}
+                        <div className="px-3 py-2 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-[11px] text-rose-600 dark:text-rose-300 flex items-center gap-2">
+                          <Icon name="ban" size={13} />
+                          <span><b>Отсутствуют:</b> {hasAbsenceToday.map((m) => m.fullName).join(', ')}</span>
                         </div>
                       )}
 
-                      {(batteryIds.length > 0 || (protectRestDay && prevDayBatteryIds.length > 0)) && (
-                        <div className="p-2 rounded-xl bg-amber-50/90 dark:bg-amber-950/50 border border-amber-200 text-xs space-y-1">
-                          {batteryIds.length > 0 && (
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-amber-900">🛡️ Наряд:</span>
-                              <span className="font-extrabold text-amber-950">{batteryIds.map((id) => getMember(id)?.fullName).join(', ')}</span>
-                            </div>
-                          )}
+                      {batteryIds.length > 0 && (
+                        <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                              <Icon name="shield" size={14} /> Наряд по батарее
+                            </span>
+                            <span className="font-extrabold text-amber-950 dark:text-amber-100">
+                              {batteryIds.map((id) => getMember(id)?.fullName).join(', ')}
+                            </span>
+                          </div>
                         </div>
                       )}
 
@@ -1479,31 +1905,29 @@
                         <div className="space-y-2">
                           {slotsToShow.map((slot) => {
                             const m = getMember(slot.memberId);
-                            const badge = slot.isPenalty ? { label: 'Штраф', cls: 'bg-rose-100 text-rose-700' }
-                              : slot.locked ? { label: 'Закреплено', cls: 'bg-amber-100 text-amber-700' }
-                              : { label: 'Авто', cls: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' };
                             return (
                               <div key={slot.id}
                                 onClick={() => { if (!isUserAdmin) return; setAssignMode('REGULAR'); setModalSlot({ date: day.date, slot }); }}
-                                className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 transition-all duration-150 ${isUserAdmin ? 'active:scale-[0.99] cursor-pointer' : ''} ${
-                                  slot.isPenalty ? 'bg-rose-50 border-rose-300' : slot.locked ? 'bg-amber-50/60 border-amber-300' : 'bg-slate-50/90 dark:bg-slate-800/70 border-slate-200'}`}>
+                                className={`p-2.5 rounded-2xl border flex items-center justify-between gap-2 transition ${isUserAdmin ? 'active:scale-[0.99] cursor-pointer' : ''} ${
+                                  slot.isPenalty ? 'bg-rose-500/10 border-rose-500/30' : 'bg-slate-50/80 dark:bg-obsidian-800/70 border-slate-200/80 dark:border-white/[0.06]'
+                                }`}>
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="text-[10px] font-extrabold uppercase text-indigo-700 dark:text-indigo-400">{slot.title}</span>
-                                    <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${badge.cls}`}>{badge.label}</span>
+                                    <span className="text-[10px] font-extrabold uppercase text-indigo-600 dark:text-indigo-400">{slot.title}</span>
+                                    {slot.isPenalty && <span className="text-[9px] font-bold px-1.5 rounded bg-rose-500/20 text-rose-600 dark:text-rose-400">Штраф</span>}
+                                    {slot.locked && <Icon name="lock" size={10} className="text-amber-500" />}
                                   </div>
                                   <div className="flex items-center gap-1.5 mt-1">
                                     <span className="text-sm font-bold truncate">{m ? m.fullName : 'Не назначен'}</span>
-                                    {m && <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${SQUAD_BADGE[m.squad]}`}>{m.squad}</span>}
+                                    {m && <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md ${SQUAD_STYLE[m.squad].badge}`}>{m.squad} отд.</span>}
                                   </div>
-                                  {slot.unassignedReason && <div className="text-[10px] text-rose-600 mt-1 font-semibold">⚠ {slot.unassignedReason}</div>}
                                 </div>
                                 {isUserAdmin && (
                                   <div className="flex items-center gap-1 shrink-0">
-                                    {slot.memberId && <button onClick={(e) => clearSlotAssignment(day.date, slot, e)} className="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-700 border text-xs">🧹</button>}
-                                    <button onClick={(e) => replaceWithBestCandidate(day.date, slot, e)} className="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-700 border text-emerald-600 text-xs">⭐</button>
-                                    <button onClick={(e) => replaceWithRandomLeastLoaded(day.date, slot, e)} className="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-700 border text-indigo-600 text-xs">🎲</button>
-                                    <button onClick={(e) => { e.stopPropagation(); askConfirmDeleteSlot(day.date, slot); }} className="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-700 border text-rose-500 text-xs">🗑</button>
+                                    {slot.memberId && <button onClick={(e) => clearSlotAssignment(day.date, slot, e)} className="w-8 h-8 rounded-xl bg-white dark:bg-obsidian-700 border border-slate-200 dark:border-white/10 text-slate-500 flex items-center justify-center press-scale"><Icon name="eraser" size={13} /></button>}
+                                    <button onClick={(e) => replaceWithBestCandidate(day.date, slot, e)} className="w-8 h-8 rounded-xl bg-white dark:bg-obsidian-700 border border-slate-200 dark:border-white/10 text-emerald-500 flex items-center justify-center press-scale"><Icon name="star" size={13} /></button>
+                                    <button onClick={(e) => replaceWithRandomLeastLoaded(day.date, slot, e)} className="w-8 h-8 rounded-xl bg-white dark:bg-obsidian-700 border border-slate-200 dark:border-white/10 text-indigo-500 flex items-center justify-center press-scale"><Icon name="dice" size={13} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); askConfirmDeleteSlot(day.date, slot); }} className="w-8 h-8 rounded-xl bg-white dark:bg-obsidian-700 border border-slate-200 dark:border-white/10 text-rose-500 flex items-center justify-center press-scale"><Icon name="trash" size={13} /></button>
                                   </div>
                                 )}
                               </div>
@@ -1517,48 +1941,43 @@
               </div>
             )}
 
-            {/* НАГРУЗКИ */}
             {tab === 'STATS' && (
-              <div className="p-3 space-y-3 fade-in">
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 space-y-2.5">
+              <div className="p-4 space-y-4 spring-enter relative z-10">
+                <div className="card-surface rounded-3xl p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-extrabold">📊 Нагрузки</h2>
-                    <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded-lg">{filteredStatsList.length}</span>
+                    <h2 className="text-sm font-extrabold">Аналитика</h2>
+                    <span className="text-[11px] font-bold text-indigo-600 bg-indigo-500/10 px-2 py-0.5 rounded-lg">{filteredStatsList.length}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <input type="text" placeholder="🔍 Фамилия" value={statSearch} onChange={(e) => setStatSearch(e.target.value)}
-                      className="px-2.5 py-1.5 border rounded-xl text-xs font-semibold dark:bg-slate-800" />
-                    <select value={statDateScope} onChange={(e) => setStatDateScope(e.target.value)}
-                      className="px-2 py-1.5 border rounded-xl text-xs font-bold dark:bg-slate-800">
+                    <div className="relative">
+                      <input type="text" placeholder="Поиск..." value={statSearch} onChange={(e) => setStatSearch(e.target.value)} className="w-full pl-8 pr-2 py-2 border border-slate-200 dark:border-white/10 dark:bg-obsidian-800 rounded-xl text-xs font-semibold outline-none" />
+                      <Icon name="search" size={14} className="absolute left-2.5 top-2.5 text-slate-400" />
+                    </div>
+                    <select value={statDateScope} onChange={(e) => setStatDateScope(e.target.value)} className="px-2 py-2 border border-slate-200 dark:border-white/10 dark:bg-obsidian-800 rounded-xl text-xs font-bold">
                       <option value="ALL">Всё время</option>
                       <option value="MONTH">Этот месяц</option>
-                      <option value="CUSTOM">Свой диапазон</option>
+                      <option value="CUSTOM">Диапазон</option>
                     </select>
                   </div>
                   {statDateScope === 'CUSTOM' && (
                     <div className="grid grid-cols-2 gap-2">
-                      <input type="date" value={statCustomFrom} onChange={(e) => setStatCustomFrom(e.target.value)} className="px-2 py-1 border rounded-lg text-xs dark:bg-slate-800" />
-                      <input type="date" value={statCustomTo} onChange={(e) => setStatCustomTo(e.target.value)} className="px-2 py-1 border rounded-lg text-xs dark:bg-slate-800" />
+                      <input type="date" value={statCustomFrom} onChange={(e) => setStatCustomFrom(e.target.value)} className="px-2 py-1.5 border border-slate-200 dark:border-white/10 dark:bg-obsidian-800 rounded-xl text-xs" />
+                      <input type="date" value={statCustomTo} onChange={(e) => setStatCustomTo(e.target.value)} className="px-2 py-1.5 border border-slate-200 dark:border-white/10 dark:bg-obsidian-800 rounded-xl text-xs" />
                     </div>
                   )}
-                  <div className="grid grid-cols-4 gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                  <div className="grid grid-cols-4 gap-1 bg-slate-100 dark:bg-obsidian-800 p-1 rounded-xl">
                     {[{ id: 0, label: 'Все' }, { id: 1, label: '1' }, { id: 2, label: '2' }, { id: 3, label: '3' }].map((sq) => (
-                      <button key={sq.id} onClick={() => setStatSquadFilter(sq.id)}
-                        className={`py-1 rounded-lg text-[11px] font-bold ${statSquadFilter === sq.id ? 'bg-white dark:bg-slate-900 text-indigo-600' : 'text-slate-500'}`}>
-                        {sq.label}
-                      </button>
+                      <button key={sq.id} onClick={() => setStatSquadFilter(sq.id)} className={`py-1.5 rounded-lg text-[11px] font-bold ${statSquadFilter === sq.id ? 'bg-white dark:bg-obsidian-900 text-indigo-600' : 'text-slate-500'}`}>{sq.label}</button>
                     ))}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <select value={statTaskFilter} onChange={(e) => { const v = e.target.value; setStatTaskFilter(v); setStatSortBy(v === 'ALL' ? 'TOTAL_DESC' : 'TASK_DESC'); }}
-                      className="px-2 py-1.5 border rounded-xl text-xs font-bold dark:bg-slate-800">
-                      <option value="ALL">Все виды</option>
-                      <option value="BATTERY">🛡️ Батарея</option>
-                      {allWorkloadTitles.map((t) => (<option key={t} value={t}>📌 {t}</option>))}
-                      <option value="PENALTY">⚠ Штрафные</option>
+                    <select value={statTaskFilter} onChange={(e) => { const v = e.target.value; setStatTaskFilter(v); setStatSortBy(v === 'ALL' ? 'TOTAL_DESC' : 'TASK_DESC'); }} className="px-2 py-2 border border-slate-200 dark:border-white/10 dark:bg-obsidian-800 rounded-xl text-xs font-bold">
+                      <option value="ALL">Все задачи</option>
+                      <option value="BATTERY">Наряд</option>
+                      {allWorkloadTitles.map((t) => (<option key={t} value={t}>{t}</option>))}
+                      <option value="PENALTY">Штрафы</option>
                     </select>
-                    <select value={statSortBy} onChange={(e) => setStatSortBy(e.target.value)}
-                      className="px-2 py-1.5 border rounded-xl text-xs font-bold dark:bg-slate-800">
+                    <select value={statSortBy} onChange={(e) => setStatSortBy(e.target.value)} className="px-2 py-2 border border-slate-200 dark:border-white/10 dark:bg-obsidian-800 rounded-xl text-xs font-bold">
                       <option value="TOTAL_DESC">Смен ↓</option>
                       <option value="TOTAL_ASC">Смен ↑</option>
                       <option value="TASK_DESC">По задаче</option>
@@ -1569,53 +1988,46 @@
 
                 <div className="space-y-2">
                   {filteredStatsList.map((st) => (
-                    <div key={st.id} className="bg-white dark:bg-slate-900 rounded-2xl p-3 border border-slate-200">
-                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div key={st.id} className="card-surface rounded-2xl p-3">
+                      <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${SQUAD_BADGE[st.squad]}`}>{st.squad}</span>
-                          <span className="font-extrabold text-sm truncate">{st.fullName}</span>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${STATUS_INFO[st.status].color}`}>{STATUS_INFO[st.status].label}</span>
+                          <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${SQUAD_STYLE[st.squad].avatar} text-white font-extrabold text-[10px] flex items-center justify-center shrink-0`}>
+                            {st.fullName.slice(0, 2)}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-extrabold text-sm truncate flex items-center gap-1.5">
+                              <HighlightText text={st.fullName} query={statSearch} />
+                              <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${STATUS_INFO[st.status].color}`}>{STATUS_INFO[st.status].label}</span>
+                            </div>
+                            <div className="text-[10px] text-slate-500">{st.squad} отделение</div>
+                          </div>
                         </div>
-                        <div className="text-xl font-extrabold text-indigo-700 dark:text-indigo-300">{st.totalAll}</div>
+                        <div className="text-xl font-extrabold text-indigo-600 dark:text-indigo-400 font-mono">{st.totalAll}</div>
                       </div>
                       <div className="mt-2 grid grid-cols-2 gap-1.5 text-[11px]">
-                        <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200">
-                          <div className="text-[9px] uppercase font-bold text-amber-700">🛡️ Батарея</div>
-                          <div className="font-extrabold text-amber-900">{st.batteryCount || 0}</div>
+                        <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 flex justify-between items-center">
+                          <span className="text-[9px] uppercase font-bold text-amber-600 dark:text-amber-400">🛡️ Наряд</span>
+                          <span className="font-extrabold text-amber-800 dark:text-amber-200">{st.batteryCount || 0}</span>
                         </div>
-                        <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200">
-                          <div className="text-[9px] uppercase font-bold text-rose-700">⚠ Штраф</div>
-                          <div className="font-extrabold text-rose-900">{st.penaltyShifts || 0}</div>
+                        <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 flex justify-between items-center">
+                          <span className="text-[9px] uppercase font-bold text-rose-600 dark:text-rose-400">⚠ Штраф</span>
+                          <span className="font-extrabold text-rose-800 dark:text-rose-200">{st.penaltyShifts || 0}</span>
                         </div>
                       </div>
-                      {(st.absences || []).length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {(st.absences || []).map((a, i) => (
-                            <div key={i} className="flex items-center justify-between text-[10px] p-1.5 rounded bg-rose-50 dark:bg-rose-950/40">
-                              <span>🚫 {a.from}…{a.to} {a.reason && `(${a.reason})`}</span>
-                              {isUserAdmin && <button onClick={() => removeAbsence(st.id, i)} className="text-rose-600 font-bold">✕</button>}
-                            </div>
-                          ))}
-                        </div>
-                      )}
                       {isUserAdmin && (
-                        <div className="mt-2 flex gap-1 flex-wrap">
-                          <select value={st.status}
-                            onChange={(e) => {
-                              const nextStatus = e.target.value;
-                              const nextMembers = members.map((x) => x.id === st.id ? { ...x, status: nextStatus } : x);
-                              const { nextLogs } = createLogAndBackup('👤 Статус', `${st.fullName}: ${STATUS_INFO[nextStatus].label}`, false, 'STATUS');
-                              setMembers(nextMembers);
-                              pushToCloudNow({ members: nextMembers, logs: nextLogs });
-                            }}
-                            className={`text-[10px] font-bold px-1.5 py-1 rounded-lg border ${STATUS_INFO[st.status].color}`}>
+                        <div className="mt-2 flex gap-1.5">
+                          <select value={st.status} onChange={(e) => {
+                            const nextStatus = e.target.value;
+                            const nextMembers = members.map((x) => x.id === st.id ? { ...x, status: nextStatus } : x);
+                            const { nextLogs } = createLogAndBackup('Статус', `${st.fullName}: ${STATUS_INFO[nextStatus].label}`, false, 'STATUS');
+                            setMembers(nextMembers); pushToCloudNow({ members: nextMembers, logs: nextLogs });
+                          }} className={`flex-1 text-[10px] font-bold px-2 py-1.5 rounded-lg border outline-none ${STATUS_INFO[st.status].color}`}>
                             <option value="ACTIVE">В строю</option>
                             <option value="SICK">Больничный</option>
                             <option value="LEAVE">Отпуск</option>
                           </select>
-                          <button onClick={() => { setAbsenceModalMember(st); setAbsenceForm({ from: todayISO, to: todayISO, reason: '' }); }}
-                            className="text-[10px] font-bold px-1.5 py-1 rounded-lg border border-rose-200 bg-rose-50 text-rose-700">
-                            🚫 Отсутствие
+                          <button onClick={() => { setAbsenceModalMember(st); setAbsenceForm({ from: todayISO, to: todayISO, reason: '' }); }} className="px-2 py-1.5 rounded-lg border border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[10px] font-bold flex items-center gap-1 press-scale">
+                            <Icon name="ban" size={12} /> Отсутствие
                           </button>
                         </div>
                       )}
@@ -1625,125 +2037,98 @@
               </div>
             )}
 
-            {/* ШАБЛОНЫ */}
             {tab === 'TASKS' && isUserAdmin && (
-              <div className="p-3 space-y-3 fade-in">
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 space-y-2">
-                  <h2 className="text-sm font-extrabold">⚙️ Правила генерации</h2>
+              <div className="p-4 space-y-4 spring-enter relative z-10">
+                <div className="card-surface rounded-3xl p-4 space-y-3">
+                  <h2 className="text-sm font-extrabold flex items-center gap-2"><Icon name="sliders" size={16} /> Параметры генерации</h2>
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold">Мин. дней между сменами:</span>
-                    <select value={cooldownDays} onChange={(e) => setCooldownDays(Number(e.target.value))}
-                      className="px-2.5 py-1 rounded-lg border dark:bg-slate-800 font-bold">
+                    <select value={cooldownDays} onChange={(e) => setCooldownDays(Number(e.target.value))} className="px-2 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 dark:bg-obsidian-800 font-bold text-xs">
                       <option value={0}>Выкл</option>
-                      <option value={1}>1 день</option>
-                      <option value={2}>2 дня</option>
-                      <option value={3}>3 дня</option>
-                      <option value={4}>4 дня</option>
-                      <option value={5}>5 дней</option>
-                      <option value={6}>6 дней</option>
-                      <option value={7}>7 дней</option>
+                      {[1,2,3,4,5,6,7].map(v => <option key={v} value={v}>{v} дн.</option>)}
                     </select>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold">Макс. смен в неделю:</span>
-                    <select value={maxShiftsPerWeek} onChange={(e) => setMaxShiftsPerWeek(Number(e.target.value))}
-                      className="px-2.5 py-1 rounded-lg border dark:bg-slate-800 font-bold">
+                    <select value={maxShiftsPerWeek} onChange={(e) => setMaxShiftsPerWeek(Number(e.target.value))} className="px-2 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 dark:bg-obsidian-800 font-bold text-xs">
                       <option value={0}>Без лимита</option>
-                      <option value={1}>1</option>
-                      <option value={2}>2</option>
-                      <option value={3}>3</option>
-                      <option value={4}>4</option>
-                      <option value={5}>5</option>
+                      {[1,2,3,4,5].map(v => <option key={v} value={v}>{v}</option>)}
                     </select>
                   </div>
-                  <label className="flex items-center gap-1.5 text-[11px] font-bold">
-                    <input type="checkbox" checked={protectRestDay} onChange={(e) => setProtectRestDay(e.target.checked)} className="w-4 h-4" />
-                    Не ставить после суточного наряда (D+1)
+                  <label className="flex items-center gap-2 text-xs font-bold pt-1 cursor-pointer">
+                    <input type="checkbox" checked={protectRestDay} onChange={(e) => setProtectRestDay(e.target.checked)} className="w-4 h-4 accent-indigo-500 rounded" />
+                    Не ставить на следующий день после наряда
                   </label>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 space-y-3">
+                <div className="card-surface rounded-3xl p-4 space-y-3">
                   <h2 className="text-sm font-extrabold">Ежедневные задачи</h2>
                   <div className="space-y-2">
                     {taskTemplates.map((tpl) => (
-                      <div key={tpl.id} className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 flex items-center justify-between">
+                      <div key={tpl.id} className="p-3 rounded-2xl bg-slate-50 dark:bg-obsidian-800 border border-slate-200 dark:border-white/10 flex items-center justify-between">
                         <div>
                           <div className="text-xs font-bold">{tpl.title}</div>
-                          <div className="text-[11px] text-slate-500">Людей: <b>{tpl.count}</b></div>
+                          <div className="text-[10px] text-slate-500">Кол-во людей: <b>{tpl.count}</b></div>
                         </div>
                         <button onClick={() => {
                           const nextTpls = taskTemplates.filter((x) => x.id !== tpl.id);
-                          setTaskTemplates(nextTpls);
-                          pushToCloudNow({ taskTemplates: nextTpls });
-                        }} className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold">Убрать</button>
+                          setTaskTemplates(nextTpls); pushToCloudNow({ taskTemplates: nextTpls });
+                        }} className="p-2 rounded-xl bg-rose-500/10 text-rose-500 press-scale"><Icon name="trash" size={14} /></button>
                       </div>
                     ))}
                   </div>
                   <form onSubmit={(e) => {
-                    e.preventDefault();
-                    if (!newTplTitle.trim()) return;
+                    e.preventDefault(); if (!newTplTitle.trim()) return;
                     const nextTpls = [...taskTemplates, { id: `tpl_${Date.now()}`, title: newTplTitle.trim(), count: Number(newTplCount) || 1 }];
-                    setTaskTemplates(nextTpls);
-                    pushToCloudNow({ taskTemplates: nextTpls });
-                    setNewTplTitle('');
-                    showToast('Добавлено');
-                  }} className="pt-2 border-t border-slate-100 space-y-2">
-                    <input type="text" placeholder="Название" value={newTplTitle} onChange={(e) => setNewTplTitle(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-xl text-xs dark:bg-slate-800" />
-                    <input type="number" min="1" max="10" value={newTplCount} onChange={(e) => setNewTplCount(e.target.value)}
-                      className="w-full px-3 py-1.5 border rounded-xl text-xs dark:bg-slate-800" />
-                    <button type="submit" className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl">+ Добавить</button>
+                    setTaskTemplates(nextTpls); pushToCloudNow({ taskTemplates: nextTpls }); setNewTplTitle(''); showToast('Добавлено');
+                  }} className="pt-2 border-t border-slate-200 dark:border-white/10 space-y-2">
+                    <input type="text" placeholder="Название задачи" value={newTplTitle} onChange={(e) => setNewTplTitle(e.target.value)} className="w-full px-3 py-2 border border-slate-200 dark:border-white/10 dark:bg-obsidian-800 rounded-xl text-xs outline-none" />
+                    <div className="flex gap-2">
+                      <input type="number" min="1" max="10" value={newTplCount} onChange={(e) => setNewTplCount(e.target.value)} className="w-20 px-3 py-2 border border-slate-200 dark:border-white/10 dark:bg-obsidian-800 rounded-xl text-xs text-center" />
+                      <button type="submit" className="flex-1 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl press-scale">Добавить</button>
+                    </div>
                   </form>
                 </div>
               </div>
             )}
 
-            {/* АРХИВ */}
             {tab === 'CLOUD' && (
-              <div className="p-3 space-y-3 fade-in">
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 space-y-2.5">
+              <div className="p-4 space-y-4 spring-enter relative z-10">
+                <div className="card-surface rounded-3xl p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-extrabold">☁️ Синхронизация (60с)</h2>
-                    <span className="text-[11px] font-mono text-indigo-500">ID: {currentTelegramId || 'Браузер'}</span>
+                    <h2 className="text-sm font-extrabold">Облако Supabase</h2>
+                    <span className="text-[10px] font-mono text-slate-500">ID: {currentTelegramId || 'Браузер'}</span>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-bold">{cloudStatus}</div>
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-obsidian-800 border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${isCloudOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                    {cloudStatus}
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
-                    {isUserAdmin && (
-                      <button onClick={() => pushToCloudNow()} className="py-2 bg-slate-900 dark:bg-indigo-600 text-white text-xs font-bold rounded-xl">⬆️ Отправить</button>
-                    )}
-                    <button onClick={() => pullFromCloudNow(false)} className="py-2 bg-indigo-50 dark:bg-slate-800 text-indigo-700 border text-xs font-bold rounded-xl">⬇️ Обновить</button>
+                    {isUserAdmin && <button onClick={() => pushToCloudNow()} className="py-2.5 bg-slate-900 dark:bg-indigo-600 text-white text-xs font-bold rounded-xl press-scale">Отправить</button>}
+                    <button onClick={() => pullFromCloudNow(false)} className="py-2.5 bg-indigo-50 dark:bg-obsidian-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-white/10 text-xs font-bold rounded-xl press-scale">Обновить</button>
                   </div>
-                  {isUserAdmin && (
-                    <button onClick={resetAllData} className="w-full py-2 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded-xl">
-                      ⚠ Сбросить все данные (с бэкапом)
-                    </button>
-                  )}
+                  {isUserAdmin && <button onClick={resetAllData} className="w-full py-2.5 bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold rounded-xl press-scale">Сбросить расписание</button>}
                 </div>
 
                 {isUserAdmin && (
-                  <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 space-y-2.5">
+                  <div className="card-surface rounded-3xl p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-sm font-extrabold">⏪ Бэкапы ({backups.length})</h2>
-                      <select value={backupFilter} onChange={(e) => setBackupFilter(e.target.value)}
-                        className="px-2 py-1 border rounded-lg text-[10px] font-bold dark:bg-slate-800">
+                      <h2 className="text-sm font-extrabold">Бэкапы ({backups.length})</h2>
+                      <select value={backupFilter} onChange={(e) => setBackupFilter(e.target.value)} className="px-2 py-1 border border-slate-200 dark:border-white/10 rounded-lg text-[10px] font-bold dark:bg-obsidian-800">
                         <option value="ALL">Все</option>
                         <option value="ASSIGNMENT">Замены</option>
                         <option value="RECALC">Пересчеты</option>
-                        <option value="BATTERY">Батарея</option>
-                        <option value="RESET">Сбросы</option>
                       </select>
                     </div>
-                    {backups.filter((b) => backupFilter === 'ALL' || b.type === backupFilter).length === 0 ? (
-                      <p className="text-xs text-slate-400">Пока нет</p>
-                    ) : (
-                      <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                    {backups.length === 0 ? <p className="text-xs text-slate-400">История пуста</p> : (
+                      <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
                         {backups.filter((b) => backupFilter === 'ALL' || b.type === backupFilter).map((bk) => (
-                          <div key={bk.id} className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border flex items-center justify-between gap-2 text-xs">
+                          <div key={bk.id} className="p-2.5 rounded-xl bg-slate-50 dark:bg-obsidian-800 border border-slate-200 dark:border-white/10 flex items-center justify-between gap-2">
                             <div className="min-w-0">
-                              <div className="font-bold truncate">{bk.label}</div>
-                              <div className="text-[10px] text-slate-400 font-mono">{bk.time} • {bk.type}</div>
+                              <div className="text-[11px] font-bold truncate">{bk.label}</div>
+                              <div className="text-[9px] text-slate-400 font-mono">{bk.time}</div>
                             </div>
-                            <button onClick={() => restoreBackupSnapshot(bk)} className="px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-extrabold text-[11px]">⏪</button>
+                            <button onClick={() => restoreBackupSnapshot(bk)} className="p-1.5 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 press-scale"><Icon name="undo" size={14} /></button>
                           </div>
                         ))}
                       </div>
@@ -1751,32 +2136,17 @@
                   </div>
                 )}
 
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 space-y-2">
-                  <h2 className="text-sm font-extrabold">📜 Журнал ({logs.length})</h2>
-                  <div className="space-y-1.5 max-h-60 overflow-y-auto divide-y divide-slate-100">
-                    {logs.slice(0, 30).map((l) => (
-                      <div key={l.id} className="pt-1.5 text-xs">
-                        <div className="flex justify-between font-bold flex-wrap gap-1">
-                          <span className="text-indigo-600">{l.action} <span className="text-[9px] px-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">{l.type}</span></span>
-                          <span className="text-[10px] text-slate-400 font-mono">{l.time} • {l.author}</span>
-                        </div>
-                        <div className="text-slate-600 dark:text-slate-300 text-[11px]">{l.details}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 space-y-2.5">
+                <div className="card-surface rounded-3xl p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-extrabold">🧪 Тесты</h2>
-                    <button onClick={runBuiltInUnitTests} className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-xl">▶ Запустить</button>
+                    <h2 className="text-sm font-extrabold">Самодиагностика</h2>
+                    <button onClick={runBuiltInUnitTests} className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-xl press-scale">Запустить</button>
                   </div>
                   {testResults && (
                     <div className="space-y-1.5">
                       {testResults.map((tr, i) => (
-                        <div key={i} className={`p-2 rounded-xl border text-xs ${tr.passed ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
-                          <div className="font-extrabold">{tr.passed ? '✅' : '❌'} {tr.name}</div>
-                          <div className="text-[11px] text-slate-600">{tr.detail}</div>
+                        <div key={i} className={`p-2 rounded-xl border text-[11px] ${tr.passed ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-300'}`}>
+                          <div className="font-bold flex items-center gap-1">{tr.passed ? <Icon name="check" size={12}/> : <Icon name="x" size={12}/>} {tr.name}</div>
+                          <div className="opacity-80 mt-0.5">{tr.detail}</div>
                         </div>
                       ))}
                     </div>
@@ -1785,60 +2155,65 @@
               </div>
             )}
 
-            {/* БЫСТРЫЙ ПРОСМОТР ДНЯ ИЗ КАЛЕНДАРЯ */}
-            {quickViewDate && (
-              <div className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center" onClick={() => setQuickViewDate(null)}>
-                <div 
-                  className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl p-5 space-y-4 modal-enter max-h-[80vh] overflow-y-auto"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="flex items-center justify-between border-b dark:border-slate-800 pb-3">
-                    <div>
-                      <div className="text-base font-extrabold capitalize">{formatRuDate(quickViewDate)}</div>
-                      <div className="text-[11px] font-mono text-slate-500">{quickViewDate}</div>
-                    </div>
-                    <button onClick={() => setQuickViewDate(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 font-bold flex items-center justify-center">✕</button>
-                  </div>
+            <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[380px] glass-dock rounded-3xl border border-white/40 dark:border-white/10 p-1.5 flex justify-between shadow-2xl z-40">
+              {[
+                { id: 'TODAY', icon: 'today', label: 'Сегодня' },
+                { id: 'SCHEDULE', icon: 'calendar', label: 'Календарь' },
+                { id: 'STATS', icon: 'chart', label: 'Люди' },
+                ...(isUserAdmin ? [{ id: 'TASKS', icon: 'sliders', label: 'Правила' }] : []),
+                { id: 'CLOUD', icon: 'cloud', label: 'Архив' },
+              ].map((item) => {
+                const active = tab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => { haptic('light'); setTab(item.id); }}
+                    className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-2xl transition-all duration-200 press-scale ${
+                      active ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Icon name={item.icon} size={18} strokeWidth={active ? 2.2 : 1.8} />
+                    <span className="text-[9px] font-extrabold tracking-tight">{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
 
+            <BottomSheet isOpen={!!quickViewDate} onClose={() => setQuickViewDate(null)} title={quickViewDate ? formatRuDate(quickViewDate) : ''} subtitle={quickViewDate}>
+              {quickViewDate && (
+                <>
                   {schedules[quickViewDate]?.note && (
-                    <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 text-xs font-bold text-amber-900 dark:text-amber-200">
-                      📝 {schedules[quickViewDate].note}
+                    <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs font-bold text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                      <Icon name="note" size={16} className="text-amber-500" /> {schedules[quickViewDate].note}
                     </div>
                   )}
-
                   {schedules[quickViewDate]?.batteryDutyIds?.length > 0 && (
-                    <div className="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200">
-                      <div className="text-[10px] font-extrabold uppercase text-amber-800 dark:text-amber-300 mb-1">🛡️ Наряд по батарее</div>
-                      <div className="text-sm font-bold text-amber-950 dark:text-amber-200">
+                    <div className="p-3 rounded-2xl bg-amber-500/15 border border-amber-500/25">
+                      <div className="text-[10px] font-extrabold uppercase text-amber-700 dark:text-amber-400 mb-1 flex items-center gap-1"><Icon name="shield" size={12}/> Наряд</div>
+                      <div className="text-sm font-bold text-amber-950 dark:text-amber-100">
                         {schedules[quickViewDate].batteryDutyIds.map((id) => getMember(id)?.fullName).join(', ')}
                       </div>
                     </div>
                   )}
-
                   <div className="space-y-2">
                     <div className="text-[10px] font-extrabold uppercase text-slate-400">Задачи на день</div>
                     {(!schedules[quickViewDate]?.slots || schedules[quickViewDate].slots.length === 0) ? (
-                      <div className="text-center py-4 text-xs text-slate-400 border border-dashed rounded-xl">Задач нет</div>
+                      <div className="text-center py-6 text-xs text-slate-400 border border-dashed rounded-2xl">Задач нет</div>
                     ) : (
                       schedules[quickViewDate].slots.map((slot) => {
                         const m = getMember(slot.memberId);
                         return (
-                          <div key={slot.id} className={`p-2.5 rounded-xl border flex items-center justify-between ${slot.isPenalty ? 'bg-rose-50 border-rose-200' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}>
-                            <div className="min-w-0 flex-1">
+                          <div key={slot.id} className={`p-3 rounded-2xl border flex items-center justify-between ${slot.isPenalty ? 'bg-rose-500/10 border-rose-500/20' : 'bg-slate-50 dark:bg-obsidian-800 border-slate-200 dark:border-white/10'}`}>
+                            <div>
                               <div className="text-[10px] font-extrabold uppercase text-indigo-600 dark:text-indigo-400 mb-0.5">{slot.title}</div>
-                              <div className="flex items-center gap-1.5">
-                                <span className={`text-sm font-bold truncate ${m ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
-                                  {m ? m.fullName : 'Не назначен'}
-                                </span>
-                                {m && <span className={`text-[9px] font-bold px-1 rounded ${SQUAD_BADGE[m.squad]}`}>{m.squad} отд.</span>}
+                              <div className="flex items-center gap-2">
+                                <span className={`text-sm font-bold truncate ${m ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>{m ? m.fullName : 'Не назначен'}</span>
+                                {m && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${SQUAD_STYLE[m.squad].badge}`}>{m.squad}</span>}
                               </div>
                             </div>
                             {isUserAdmin && (
-                              <button 
-                                onClick={() => { setQuickViewDate(null); setModalSlot({ date: quickViewDate, slot }); }} 
-                                className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs font-bold shadow-xs shrink-0"
-                              >
-                                ✏️
+                              <button onClick={() => { setQuickViewDate(null); setModalSlot({ date: quickViewDate, slot }); }} className="p-2.5 rounded-xl bg-white dark:bg-obsidian-700 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 press-scale">
+                                <Icon name="edit" size={14} />
                               </button>
                             )}
                           </div>
@@ -1846,223 +2221,38 @@
                       })
                     )}
                   </div>
-
                   {isUserAdmin && (
                     <div className="grid grid-cols-2 gap-2 pt-2">
-                      <button 
-                        onClick={() => { setQuickViewDate(null); setAddSlotDate(quickViewDate); }}
-                        className="py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold rounded-xl"
-                      >
-                        + Задача
+                      <button onClick={() => { setQuickViewDate(null); setAddSlotDate(quickViewDate); }} className="py-2.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold rounded-xl flex justify-center items-center gap-1.5 press-scale">
+                        <Icon name="plus" size={14}/> Задача
                       </button>
-                      <button 
-                        onClick={() => { 
-                          setQuickViewDate(null); 
-                          setSelectedDayISO(quickViewDate); 
-                          setDayFilterMode('SINGLE_DAY'); 
-                          setTab('SCHEDULE'); 
-                          setTimeout(() => document.getElementById(`day-card-${quickViewDate}`)?.scrollIntoView({behavior:'smooth'}), 100);
-                        }}
-                        className="py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold rounded-xl"
-                      >
-                        🔍 В списке
+                      <button onClick={() => { setQuickViewDate(null); setSelectedDayISO(quickViewDate); setDayFilterMode('SINGLE_DAY'); setTab('SCHEDULE'); }} className="py-2.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-xs font-bold rounded-xl flex justify-center items-center gap-1.5 press-scale">
+                        <Icon name="search" size={14}/> В списке
                       </button>
                     </div>
                   )}
-                </div>
-              </div>
-            )}
+                </>
+              )}
+            </BottomSheet>
 
-            {/* ПОИСК */}
-            {searchOpen && (
-              <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-4 pt-16 modal-enter">
-                <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-sm w-full p-4 space-y-3 border shadow-2xl">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-extrabold">🔍 Поиск бойца</h3>
-                    <button onClick={() => setSearchOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 font-bold">✕</button>
-                  </div>
-                  <input autoFocus type="text" placeholder="Фамилия..." value={statSearch} onChange={(e) => setStatSearch(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-xl text-sm dark:bg-slate-800" />
-                  <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
-                    {members.filter((m) => !statSearch.trim() || m.fullName.toLowerCase().includes(statSearch.toLowerCase())).map((m) => (
-                      <button key={m.id} onClick={() => jumpToMember(m.id)} className="w-full text-left p-2 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800">
-                        <div>
-                          <div className="text-xs font-bold">{m.fullName}</div>
-                          <div className="text-[10px] text-slate-500">{m.squad} отд. • {STATUS_INFO[m.status].label}</div>
-                        </div>
-                        <span className="text-indigo-600 font-bold text-xs">→</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* МОДАЛКА ЗАМЕТКИ */}
-            {noteModalDate && (
-              <div className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center">
-                <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl p-4 space-y-3 modal-enter">
-                  <div className="flex items-center justify-between border-b pb-2">
-                    <div className="text-sm font-extrabold">📝 Заметка • {formatRuDate(noteModalDate)}</div>
-                    <button onClick={() => setNoteModalDate(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 font-bold">✕</button>
-                  </div>
-                  <textarea rows="3" value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Например: ПХД после обеда"
-                    className="w-full px-3 py-2 border rounded-xl text-xs dark:bg-slate-800" />
-                  <button onClick={saveDayNote} className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl">Сохранить</button>
-                </div>
-              </div>
-            )}
-
-            {/* МОДАЛКА КОПИРОВАНИЯ */}
-            {copyModalDate && (
-              <div className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center">
-                <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl p-4 space-y-3 modal-enter">
-                  <div className="flex items-center justify-between border-b pb-2">
-                    <div className="text-sm font-extrabold">📋 Копировать структуру из {formatRuDate(copyModalDate)}</div>
-                    <button onClick={() => setCopyModalDate(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 font-bold">✕</button>
-                  </div>
+            <BottomSheet isOpen={!!modalSlot} onClose={() => setModalSlot(null)} title={modalSlot?.slot.title || ''} subtitle={modalSlot ? formatRuDate(modalSlot.date) : ''}>
+              {modalSlot && (
+                <>
                   <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-slate-500">С</label>
-                      <input type="date" value={copyRange.from} onChange={(e) => setCopyRange({ ...copyRange, from: e.target.value })} className="w-full px-2 py-1 border rounded-lg text-xs dark:bg-slate-800" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-slate-500">По</label>
-                      <input type="date" value={copyRange.to} onChange={(e) => setCopyRange({ ...copyRange, to: e.target.value })} className="w-full px-2 py-1 border rounded-lg text-xs dark:bg-slate-800" />
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-slate-500">Копируется только структура (типы задач). Назначения будут пустыми.</p>
-                  <button onClick={applyCopyDayStructure} className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl">Применить</button>
-                </div>
-              </div>
-            )}
-
-            {/* МОДАЛКА ОТСУТСТВИЯ */}
-            {absenceModalMember && (
-              <div className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center">
-                <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl p-4 space-y-3 modal-enter">
-                  <div className="flex items-center justify-between border-b pb-2">
-                    <div className="text-sm font-extrabold">🚫 Отсутствие • {absenceModalMember.fullName}</div>
-                    <button onClick={() => setAbsenceModalMember(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 font-bold">✕</button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-slate-500">С</label>
-                      <input type="date" value={absenceForm.from} onChange={(e) => setAbsenceForm({ ...absenceForm, from: e.target.value })} className="w-full px-2 py-1 border rounded-lg text-xs dark:bg-slate-800" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-slate-500">По</label>
-                      <input type="date" value={absenceForm.to} onChange={(e) => setAbsenceForm({ ...absenceForm, to: e.target.value })} className="w-full px-2 py-1 border rounded-lg text-xs dark:bg-slate-800" />
-                    </div>
-                  </div>
-                  <input type="text" placeholder="Причина (необязательно)" value={absenceForm.reason} onChange={(e) => setAbsenceForm({ ...absenceForm, reason: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-xl text-xs dark:bg-slate-800" />
-                  <button onClick={addAbsence} className="w-full py-2 bg-rose-600 text-white text-xs font-bold rounded-xl">Добавить</button>
-                </div>
-              </div>
-            )}
-
-            {/* МОДАЛКА ПЕРЕСЧЕТА */}
-            {recalcModalOpen && (
-              <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 modal-enter">
-                <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-5 space-y-3 border shadow-2xl">
-                  <h3 className="text-base font-extrabold">🔄 Пересчитать диапазон</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-slate-500">От</label>
-                      <input type="date" value={recalcRange.from} onChange={(e) => setRecalcRange({ ...recalcRange, from: e.target.value })} className="w-full px-2 py-1 border rounded-lg text-xs dark:bg-slate-800" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-slate-500">До</label>
-                      <input type="date" value={recalcRange.to} onChange={(e) => setRecalcRange({ ...recalcRange, to: e.target.value })} className="w-full px-2 py-1 border rounded-lg text-xs dark:bg-slate-800" />
-                    </div>
-                  </div>
-                  <p className="text-[11px] text-slate-500">Выберите режим:</p>
-                  <div className="space-y-2">
-                    <button onClick={() => setRecalcConfirm({ resetAll: false })} className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 text-white text-xs font-extrabold text-left">
-                      ✅ Заполнить пустые
-                      <span className="block text-[10px] font-normal text-indigo-100 mt-0.5">Существующие назначения остаются</span>
+                    <button onClick={() => replaceWithBestCandidate(modalSlot.date, modalSlot.slot)} className="py-2.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-xs font-bold flex justify-center items-center gap-1.5 press-scale">
+                      <Icon name="star" size={14} /> Лучший
                     </button>
-                    <button onClick={() => setRecalcConfirm({ resetAll: true })} className="w-full py-2.5 px-3 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-extrabold text-left">
-                      ⚠️ Сбросить и пересчитать
-                      <span className="block text-[10px] font-normal opacity-80 mt-0.5">Все назначения в диапазоне будут удалены</span>
+                    <button onClick={() => replaceWithRandomLeastLoaded(modalSlot.date, modalSlot.slot)} className="py-2.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 rounded-xl text-xs font-bold flex justify-center items-center gap-1.5 press-scale">
+                      <Icon name="dice" size={14} /> Случайный
                     </button>
-                    <button onClick={() => setRecalcModalOpen(false)} className="w-full py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold">Отмена</button>
                   </div>
-                </div>
-              </div>
-            )}
+                  
+                  <div className="grid grid-cols-2 gap-1 bg-slate-100 dark:bg-obsidian-800 p-1 rounded-xl">
+                    <button onClick={() => setAssignMode('REGULAR')} className={`py-2 rounded-lg text-xs font-bold transition ${assignMode === 'REGULAR' ? 'bg-white dark:bg-obsidian-900 text-indigo-600 shadow-xs' : 'text-slate-500'}`}>Очередь</button>
+                    <button onClick={() => setAssignMode('PENALTY')} className={`py-2 rounded-lg text-xs font-bold transition ${assignMode === 'PENALTY' ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-500'}`}>Штраф</button>
+                  </div>
 
-            {recalcConfirm && (
-              <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 modal-enter">
-                <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-5 space-y-3 border shadow-2xl">
-                  <h3 className="text-base font-extrabold">⚠ Точно?</h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-300">
-                    Диапазон {recalcRange.from} … {recalcRange.to}. Режим: {recalcConfirm.resetAll ? 'сброс и пересчёт' : 'дозаполнение пустых'}.
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button onClick={() => setRecalcConfirm(null)} className="py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold">Отмена</button>
-                    <button onClick={() => executeRecalculateRange(recalcRange.from, recalcRange.to, recalcConfirm.resetAll)} className="py-2 rounded-xl bg-rose-600 text-white text-xs font-extrabold">Подтвердить</button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ПОДТВЕРЖДЕНИЕ */}
-            {confirmDialog && (
-              <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 modal-enter">
-                <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-5 space-y-4 border shadow-2xl">
-                  <h3 className="text-base font-extrabold">{confirmDialog.title}</h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-300">{confirmDialog.message}</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button onClick={() => setConfirmDialog(null)} className="py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold">Отмена</button>
-                    <button onClick={confirmDialog.onConfirm} className="py-2.5 rounded-xl bg-rose-600 text-white text-xs font-extrabold">{confirmDialog.confirmLabel}</button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* БАТАРЕЯ */}
-            {isUserAdmin && batteryModalDate && (
-              <div className="fixed inset-0 z-40 bg-black/50 flex items-end justify-center">
-                <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl p-4 space-y-3 max-h-[82vh] flex flex-col modal-enter">
-                  <div className="flex items-center justify-between border-b pb-2">
-                    <div className="text-sm font-extrabold">🛡️ {formatRuDate(batteryModalDate)} ({schedules[batteryModalDate]?.batteryDutyIds?.length || 0})</div>
-                    <button onClick={() => setBatteryModalDate(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 font-bold">✕</button>
-                  </div>
-                  <div className="overflow-y-auto divide-y divide-slate-100 border rounded-xl">
-                    {members.map((m) => {
-                      const checked = (schedules[batteryModalDate]?.batteryDutyIds || []).includes(m.id);
-                      const absent = inAbsence(m, batteryModalDate);
-                      return (
-                        <div key={m.id} onClick={() => toggleBatteryDutyMember(batteryModalDate, m.id)} className={`p-2.5 flex items-center justify-between cursor-pointer ${checked ? 'bg-amber-50' : ''}`}>
-                          <span className={`text-xs font-bold ${absent ? 'text-slate-400' : ''}`}>{m.fullName} {absent && '🚫'}</span>
-                          <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${checked ? 'bg-amber-500 text-white' : 'bg-slate-100 dark:bg-slate-800'}`}>{checked ? '✓' : 'Выбрать'}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* НАЗНАЧЕНИЕ */}
-            {isUserAdmin && modalSlot && (
-              <div className="fixed inset-0 z-40 bg-black/50 flex items-end justify-center">
-                <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl p-4 space-y-3 max-h-[85vh] flex flex-col modal-enter">
-                  <div className="flex items-center justify-between border-b pb-2">
-                    <div className="text-sm font-extrabold">{modalSlot.slot.title} • {formatRuDate(modalSlot.date)}</div>
-                    <button onClick={() => setModalSlot(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 font-bold">✕</button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1">
-                    <button onClick={() => replaceWithBestCandidate(modalSlot.date, modalSlot.slot)} className="w-full py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl">⭐ Лучший</button>
-                    <button onClick={() => replaceWithRandomLeastLoaded(modalSlot.date, modalSlot.slot)} className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl">🎲 Случайный</button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-                    <button onClick={() => setAssignMode('REGULAR')} className={`py-1.5 rounded-lg text-[11px] font-bold ${assignMode === 'REGULAR' ? 'bg-white dark:bg-slate-900 text-indigo-600' : 'text-slate-500'}`}>Очередь</button>
-                    <button onClick={() => setAssignMode('PENALTY')} className={`py-1.5 rounded-lg text-[11px] font-bold ${assignMode === 'PENALTY' ? 'bg-rose-600 text-white' : 'text-slate-500'}`}>Штраф</button>
-                  </div>
-                  <div className="overflow-y-auto border rounded-xl flex-1">
+                  <div className="space-y-1.5 mt-2">
                     {(() => {
                       const day = schedules[modalSlot.date] || { batteryDutyIds: [], slots: [] };
                       const busy = new Set([
@@ -2078,13 +2268,22 @@
                       const renderRow = (m, group) => {
                         const warns = getAssignmentWarnings(modalSlot.date, m.id);
                         return (
-                          <div key={`${group}_${m.id}`} className="p-2.5 flex items-center justify-between border-b last:border-0">
+                          <div key={`${group}_${m.id}`} className="p-3 rounded-2xl bg-slate-50 dark:bg-obsidian-800 border border-slate-200 dark:border-white/10 flex items-center justify-between">
                             <div className="min-w-0">
-                              <div className="text-xs font-bold">{m.fullName} ({m.squad})</div>
-                              <div className="text-[10px] text-slate-500">Смен: {statsMap[m.id]?.totalAll || 0}</div>
-                              {warns.length > 0 && <div className="text-[10px] text-rose-600 mt-0.5">⚠ {warns.join(' • ')}</div>}
+                              <div className="text-xs font-bold flex items-center gap-2">
+                                {m.fullName}
+                                <span className={`text-[9px] px-1.5 rounded ${SQUAD_STYLE[m.squad].badge}`}>{m.squad}</span>
+                              </div>
+                              <div className="text-[10px] text-slate-500 mt-0.5">Всего смен: {statsMap[m.id]?.totalAll || 0}</div>
+                              {warns.length > 0 && (
+                                <div className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
+                                  <Icon name="ban" size={10}/> {warns.join(' • ')}
+                                </div>
+                              )}
                             </div>
-                            <button onClick={() => handleAssignMember(m.id)} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-xl ml-2">→</button>
+                            <button onClick={() => handleAssignMember(m.id)} className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 ml-2 press-scale">
+                              <Icon name="check" size={16} />
+                            </button>
                           </div>
                         );
                       };
@@ -2093,65 +2292,156 @@
                         <>
                           {recommended.length > 0 && (
                             <div>
-                              <div className="px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-[10px] font-extrabold uppercase text-emerald-700">⭐ Рекомендованные</div>
-                              {recommended.map((m) => renderRow(m, 'rec'))}
+                              <div className="text-[10px] font-extrabold uppercase text-emerald-500 px-2 py-1">Рекомендованные</div>
+                              <div className="space-y-1.5">{recommended.map((m) => renderRow(m, 'rec'))}</div>
                             </div>
                           )}
                           {freeToday.length > 0 && (
                             <div>
-                              <div className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 text-[10px] font-extrabold uppercase text-slate-500">Свободные</div>
-                              {freeToday.map((m) => renderRow(m, 'free'))}
+                              <div className="text-[10px] font-extrabold uppercase text-slate-400 px-2 py-1 mt-2">Свободные</div>
+                              <div className="space-y-1.5">{freeToday.map((m) => renderRow(m, 'free'))}</div>
                             </div>
                           )}
                           {others.length > 0 && (
                             <div>
-                              <div className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-[10px] font-extrabold uppercase text-slate-500">Остальные</div>
-                              {others.map((m) => renderRow(m, 'other'))}
+                              <div className="text-[10px] font-extrabold uppercase text-slate-400 px-2 py-1 mt-2">Остальные</div>
+                              <div className="space-y-1.5">{others.map((m) => renderRow(m, 'other'))}</div>
                             </div>
                           )}
                         </>
                       );
                     })()}
                   </div>
+                </>
+              )}
+            </BottomSheet>
+
+            <BottomSheet isOpen={!!batteryModalDate} onClose={() => setBatteryModalDate(null)} title="Наряд по батарее" subtitle={batteryModalDate ? formatRuDate(batteryModalDate) : ''}>
+              {batteryModalDate && (
+                <div className="space-y-1.5">
+                  {members.map((m) => {
+                    const checked = (schedules[batteryModalDate]?.batteryDutyIds || []).includes(m.id);
+                    const absent = inAbsence(m, batteryModalDate);
+                    return (
+                      <div key={m.id} onClick={() => toggleBatteryDutyMember(batteryModalDate, m.id)} className={`p-3 rounded-2xl flex items-center justify-between cursor-pointer border transition ${checked ? 'bg-amber-500/10 border-amber-500/30' : 'bg-slate-50 dark:bg-obsidian-800 border-slate-200 dark:border-white/10'}`}>
+                        <span className={`text-xs font-bold flex items-center gap-2 ${absent ? 'text-slate-400' : ''}`}>
+                          {m.fullName}
+                          <span className={`text-[9px] px-1.5 rounded ${SQUAD_STYLE[m.squad].badge}`}>{m.squad}</span>
+                          {absent && <Icon name="ban" size={12} className="text-rose-400" />}
+                        </span>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${checked ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-300 dark:border-slate-600'}`}>
+                          {checked && <Icon name="check" size={12} />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </BottomSheet>
+
+            <BottomSheet isOpen={!!addSlotDate} onClose={() => setAddSlotDate(null)} title="Новая задача" subtitle={addSlotDate ? formatRuDate(addSlotDate) : ''}>
+              <form onSubmit={handleAddCustomSlotToDay} className="space-y-3">
+                <input type="text" required placeholder="Название задачи (напр. ПХД)" value={customSlotTitle} onChange={(e) => setCustomSlotTitle(e.target.value)} className="w-full px-3 py-2.5 border border-slate-200 dark:border-white/10 dark:bg-obsidian-800 rounded-xl text-sm outline-none" />
+                <button type="submit" className="w-full py-3 bg-emerald-600 text-white text-sm font-bold rounded-xl press-scale">Добавить задачу</button>
+              </form>
+            </BottomSheet>
+
+            <BottomSheet isOpen={!!noteModalDate} onClose={() => setNoteModalDate(null)} title="Заметка" subtitle={noteModalDate ? formatRuDate(noteModalDate) : ''}>
+              <textarea rows="3" value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Например: ПХД после обеда" className="w-full px-3 py-2.5 border border-slate-200 dark:border-white/10 dark:bg-obsidian-800 rounded-xl text-sm outline-none" />
+              <button onClick={saveDayNote} className="w-full py-3 bg-indigo-600 text-white text-sm font-bold rounded-xl press-scale">Сохранить</button>
+            </BottomSheet>
+
+            <BottomSheet isOpen={!!copyModalDate} onClose={() => setCopyModalDate(null)} title="Копировать структуру" subtitle={copyModalDate ? `Из ${formatRuDate(copyModalDate)}` : ''}>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">С</label>
+                  <input type="date" value={copyRange.from} onChange={(e) => setCopyRange({ ...copyRange, from: e.target.value })} className="w-full px-2 py-2.5 border border-slate-200 dark:border-white/10 dark:bg-obsidian-800 rounded-xl text-sm" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">По</label>
+                  <input type="date" value={copyRange.to} onChange={(e) => setCopyRange({ ...copyRange, to: e.target.value })} className="w-full px-2 py-2.5 border border-slate-200 dark:border-white/10 dark:bg-obsidian-800 rounded-xl text-sm" />
                 </div>
               </div>
-            )}
+              <button onClick={applyCopyDayStructure} className="w-full py-3 bg-indigo-600 text-white text-sm font-bold rounded-xl press-scale mt-2">Применить</button>
+            </BottomSheet>
 
-            {/* ДОБАВЛЕНИЕ */}
-            {isUserAdmin && addSlotDate && (
-              <div className="fixed inset-0 z-40 bg-black/50 flex items-end justify-center">
-                <form onSubmit={handleAddCustomSlotToDay} className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl p-4 space-y-3 modal-enter">
-                  <div className="flex items-center justify-between border-b pb-2">
-                    <div className="text-sm font-extrabold">+ Задача • {formatRuDate(addSlotDate)}</div>
-                    <button type="button" onClick={() => setAddSlotDate(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 font-bold">✕</button>
-                  </div>
-                  <input type="text" required placeholder="Название" value={customSlotTitle} onChange={(e) => setCustomSlotTitle(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-xl text-xs dark:bg-slate-800" />
-                  <button type="submit" className="w-full py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl">Добавить</button>
-                </form>
+            <BottomSheet isOpen={!!absenceModalMember} onClose={() => setAbsenceModalMember(null)} title="Отсутствие" subtitle={absenceModalMember?.fullName}>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">С</label>
+                  <input type="date" value={absenceForm.from} onChange={(e) => setAbsenceForm({ ...absenceForm, from: e.target.value })} className="w-full px-2 py-2.5 border border-slate-200 dark:border-white/10 dark:bg-obsidian-800 rounded-xl text-sm" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">По</label>
+                  <input type="date" value={absenceForm.to} onChange={(e) => setAbsenceForm({ ...absenceForm, to: e.target.value })} className="w-full px-2 py-2.5 border border-slate-200 dark:border-white/10 dark:bg-obsidian-800 rounded-xl text-sm" />
+                </div>
               </div>
-            )}
+              <input type="text" placeholder="Причина (необязательно)" value={absenceForm.reason} onChange={(e) => setAbsenceForm({ ...absenceForm, reason: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 dark:border-white/10 dark:bg-obsidian-800 rounded-xl text-sm mt-2" />
+              <button onClick={addAbsence} className="w-full py-3 bg-rose-600 text-white text-sm font-bold rounded-xl press-scale mt-2">Сохранить</button>
+            </BottomSheet>
 
-            {/* НАВИГАЦИЯ */}
-            <nav className={`fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white dark:bg-slate-900 border-t grid ${isUserAdmin ? 'grid-cols-4' : 'grid-cols-3'} py-2 z-30`}>
-              <button onClick={() => setTab('TODAY')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'TODAY' ? 'text-indigo-600' : 'text-slate-400'}`}>
-                <span>📌</span><span>Сегодня</span>
-              </button>
-              <button onClick={() => setTab('SCHEDULE')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'SCHEDULE' ? 'text-indigo-600' : 'text-slate-400'}`}>
-                <span>📅</span><span>Календарь</span>
-              </button>
-              <button onClick={() => setTab('STATS')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'STATS' ? 'text-indigo-600' : 'text-slate-400'}`}>
-                <span>📊</span><span>Нагрузки</span>
-              </button>
-              {isUserAdmin && (
-                <button onClick={() => setTab('TASKS')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'TASKS' ? 'text-indigo-600' : 'text-slate-400'}`}>
-                  <span>⚙️</span><span>Правила</span>
+            <BottomSheet isOpen={recalcModalOpen} onClose={() => setRecalcModalOpen(false)} title="Пересчет диапазона">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">От</label>
+                  <input type="date" value={recalcRange.from} onChange={(e) => setRecalcRange({ ...recalcRange, from: e.target.value })} className="w-full px-2 py-2.5 border border-slate-200 dark:border-white/10 dark:bg-obsidian-800 rounded-xl text-sm" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">До</label>
+                  <input type="date" value={recalcRange.to} onChange={(e) => setRecalcRange({ ...recalcRange, to: e.target.value })} className="w-full px-2 py-2.5 border border-slate-200 dark:border-white/10 dark:bg-obsidian-800 rounded-xl text-sm" />
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-500 font-medium mt-2">Выберите режим:</p>
+              <div className="space-y-2 mt-1">
+                <button onClick={() => setRecalcConfirm({ resetAll: false })} className="w-full py-3 px-4 rounded-xl bg-indigo-600 text-white text-xs font-extrabold text-left press-scale">
+                  ✅ Дозаполнить пустые
+                  <span className="block text-[10px] font-normal opacity-80 mt-0.5">Существующие назначения не тронутся</span>
                 </button>
+                <button onClick={() => setRecalcConfirm({ resetAll: true })} className="w-full py-3 px-4 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-xs font-extrabold text-left press-scale">
+                  ⚠️ Сбросить и заново
+                  <span className="block text-[10px] font-normal opacity-80 mt-0.5">Все люди в диапазоне будут удалены</span>
+                </button>
+              </div>
+            </BottomSheet>
+
+            <BottomSheet isOpen={!!recalcConfirm} onClose={() => setRecalcConfirm(null)} title="Точно пересчитать?">
+              <p className="text-xs text-slate-600 dark:text-slate-300">Диапазон: {recalcRange.from} — {recalcRange.to}. Режим: {recalcConfirm?.resetAll ? 'полный сброс' : 'дозаполнение пустых'}.</p>
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                <button onClick={() => setRecalcConfirm(null)} className="py-3 rounded-xl bg-slate-100 dark:bg-obsidian-800 text-xs font-bold press-scale">Отмена</button>
+                <button onClick={() => executeRecalculateRange(recalcRange.from, recalcRange.to, recalcConfirm.resetAll)} className="py-3 rounded-xl bg-rose-600 text-white text-xs font-extrabold press-scale">Подтвердить</button>
+              </div>
+            </BottomSheet>
+
+            <BottomSheet isOpen={searchOpen} onClose={() => setSearchOpen(false)} title="Поиск бойца">
+              <div className="relative">
+                <input autoFocus type="text" placeholder="Введите фамилию..." value={statSearch} onChange={(e) => setStatSearch(e.target.value)} className="w-full pl-9 pr-3 py-3 border border-slate-200 dark:border-white/10 dark:bg-obsidian-800 rounded-xl text-sm outline-none" />
+                <Icon name="search" size={16} className="absolute left-3 top-3.5 text-slate-400" />
+              </div>
+              <div className="space-y-1.5 mt-2 max-h-64 overflow-y-auto">
+                {members.filter((m) => !statSearch.trim() || m.fullName.toLowerCase().includes(statSearch.toLowerCase())).map((m) => (
+                  <button key={m.id} onClick={() => jumpToMember(m.id)} className="w-full text-left p-3 rounded-xl bg-slate-50 dark:bg-obsidian-800 border border-slate-200 dark:border-white/10 flex items-center justify-between press-scale">
+                    <div>
+                      <div className="text-xs font-bold">{m.fullName}</div>
+                      <div className="text-[10px] text-slate-500 mt-0.5">{m.squad} отд. • {STATUS_INFO[m.status].label}</div>
+                    </div>
+                    <Icon name="chevronRight" size={14} className="text-slate-400" />
+                  </button>
+                ))}
+              </div>
+            </BottomSheet>
+
+            <BottomSheet isOpen={!!confirmDialog} onClose={() => setConfirmDialog(null)} title={confirmDialog?.title || ''}>
+              {confirmDialog && (
+                <>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{confirmDialog.message}</p>
+                  <div className="grid grid-cols-2 gap-2 mt-4">
+                    <button onClick={() => setConfirmDialog(null)} className="py-3 rounded-xl bg-slate-100 dark:bg-obsidian-800 text-xs font-bold press-scale">Отмена</button>
+                    <button onClick={confirmDialog.onConfirm} className="py-3 rounded-xl bg-rose-600 text-white text-xs font-extrabold press-scale">{confirmDialog.confirmLabel}</button>
+                  </div>
+                </>
               )}
-              <button onClick={() => setTab('CLOUD')} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'CLOUD' ? 'text-indigo-600' : 'text-slate-400'}`}>
-                <span>☁️</span><span>Архив</span>
-              </button>
-            </nav>
+            </BottomSheet>
+
           </div>
         </div>
       );
